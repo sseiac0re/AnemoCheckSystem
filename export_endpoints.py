@@ -22,9 +22,11 @@ def register_export_routes(app):
         cw = csv.writer(si)
         cw.writerow(['Date', 'WBC', 'RBC', 'HGB', 'HCT', 'MCV', 'MCH', 'MCHC', 'PLT', 'NEUTROPHILS', 'LYMPHOCYTES', 'MONOCYTES', 'EOSINOPHILS', 'BASOPHIL', 'IMMATURE_GRANULOCYTES', 'Classification', 'Confidence', 'Notes'])
         for r in records:
+            confidence_value = r.get('confidence')
+            confidence_formatted = f"{float(confidence_value)*100:.2f}%" if confidence_value is not None else ''
             cw.writerow([
                 r.get('created_at'), r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'),
-                r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), r.get('immature_granulocytes'), r.get('predicted_class'), r.get('confidence'), r.get('notes')
+                r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), r.get('immature_granulocytes'), r.get('predicted_class'), confidence_formatted, r.get('notes')
             ])
 
         output = make_response(si.getvalue())
@@ -61,7 +63,9 @@ def register_export_routes(app):
         cw = csv.writer(si)
         cw.writerow(['id','user_id','username','created_at','wbc','rbc','hgb','hct','mcv','mch','mchc','plt','neutrophils','lymphocytes','monocytes','eosinophils','basophil','immature_granulocytes','predicted_class','confidence','recommendation','notes'])
         for r in records:
-            cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), r.get('created_at'), r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), r.get('immature_granulocytes'), r.get('predicted_class'), r.get('confidence'), r.get('recommendation'), r.get('notes')])
+            confidence_value = r.get('confidence')
+            confidence_formatted = f"{float(confidence_value)*100:.2f}%" if confidence_value is not None else ''
+            cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), r.get('created_at'), r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), r.get('immature_granulocytes'), r.get('predicted_class'), confidence_formatted, r.get('recommendation'), r.get('notes')])
 
         output = make_response(si.getvalue())
         output.headers['Content-Disposition'] = 'attachment; filename=anemocheck_classification_history.csv'
