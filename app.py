@@ -1816,9 +1816,7 @@ def export_classification_stats():
     
     # Write header
     writer.writerow(['Classification Statistics Export'])
-    # Format current time with AM/PM
-    current_time_str = get_philippines_time().strftime('%Y-%m-%d %H:%M:%S')
-    writer.writerow(['Generated on', format_philippines_time_ampm(current_time_str)])
+    writer.writerow(['Generated on', get_philippines_time_for_db()])
     writer.writerow(['Data includes', 'Original system data + Imported CSV data'])
     writer.writerow([])
     
@@ -1839,10 +1837,9 @@ def export_classification_stats():
             writer.writerow(['File Name', 'Date Imported', 'Total Records', 'Status'])
             for file_info in imported_files:
                 status = 'Applied' if file_info['is_applied'] else 'Unapplied'
-                imported_at_formatted = format_philippines_time_ampm(file_info['imported_at']) if file_info.get('imported_at') else ''
                 writer.writerow([
                     file_info['filename'],
-                    imported_at_formatted,
+                    file_info['imported_at'],
                     file_info['total_records'],
                     status
                 ])

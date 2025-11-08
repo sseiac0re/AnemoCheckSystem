@@ -4,7 +4,6 @@ import csv
 from io import StringIO
 
 import database as db
-from timezone_utils import format_philippines_time_ampm
 
 def register_export_routes(app):
     @app.route('/export/history.csv')
@@ -25,9 +24,8 @@ def register_export_routes(app):
         for r in records:
             confidence_value = r.get('confidence')
             confidence_formatted = f"{float(confidence_value)*100:.2f}%" if confidence_value is not None else ''
-            created_at_formatted = format_philippines_time_ampm(r.get('created_at')) if r.get('created_at') else ''
             cw.writerow([
-                created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'),
+                r.get('created_at'), r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'),
                 r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), r.get('immature_granulocytes'), r.get('predicted_class'), confidence_formatted, r.get('notes')
             ])
 
@@ -47,9 +45,7 @@ def register_export_routes(app):
         cw = csv.writer(si)
         cw.writerow(['id','username','email','first_name','last_name','gender','date_of_birth','medical_id','is_admin','created_at','last_login'])
         for u in users:
-            created_at_formatted = format_philippines_time_ampm(u.get('created_at')) if u.get('created_at') else ''
-            last_login_formatted = format_philippines_time_ampm(u.get('last_login')) if u.get('last_login') else ''
-            cw.writerow([u.get('id'), u.get('username'), u.get('email'), u.get('first_name'), u.get('last_name'), u.get('gender'), u.get('date_of_birth'), u.get('medical_id'), u.get('is_admin'), created_at_formatted, last_login_formatted])
+            cw.writerow([u.get('id'), u.get('username'), u.get('email'), u.get('first_name'), u.get('last_name'), u.get('gender'), u.get('date_of_birth'), u.get('medical_id'), u.get('is_admin'), u.get('created_at'), u.get('last_login')])
 
         output = make_response(si.getvalue())
         output.headers['Content-Disposition'] = 'attachment; filename=anemocheck_users.csv'
@@ -69,8 +65,7 @@ def register_export_routes(app):
         for r in records:
             confidence_value = r.get('confidence')
             confidence_formatted = f"{float(confidence_value)*100:.2f}%" if confidence_value is not None else ''
-            created_at_formatted = format_philippines_time_ampm(r.get('created_at')) if r.get('created_at') else ''
-            cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), r.get('immature_granulocytes'), r.get('predicted_class'), confidence_formatted, r.get('recommendation'), r.get('notes')])
+            cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), r.get('created_at'), r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), r.get('immature_granulocytes'), r.get('predicted_class'), confidence_formatted, r.get('recommendation'), r.get('notes')])
 
         output = make_response(si.getvalue())
         output.headers['Content-Disposition'] = 'attachment; filename=anemocheck_classification_history.csv'
@@ -97,8 +92,7 @@ def register_export_routes(app):
         cw = csv.writer(si)
         cw.writerow(['user_id','username','height','weight','blood_type','medical_conditions','medications','updated_at'])
         for r in rows:
-            updated_at_formatted = format_philippines_time_ampm(r.get('updated_at')) if r.get('updated_at') else ''
-            cw.writerow([r.get('user_id'), r.get('username'), r.get('height'), r.get('weight'), r.get('blood_type'), r.get('medical_conditions'), r.get('medications'), updated_at_formatted])
+            cw.writerow([r.get('user_id'), r.get('username'), r.get('height'), r.get('weight'), r.get('blood_type'), r.get('medical_conditions'), r.get('medications'), r.get('updated_at')])
 
         output = make_response(si.getvalue())
         output.headers['Content-Disposition'] = 'attachment; filename=anemocheck_medical_data.csv'
