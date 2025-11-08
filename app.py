@@ -1945,36 +1945,77 @@ def import_classification_data():
         )
         print(f"Created file record with ID: {file_id}")
         
+        # Use batch insert for better performance
+        from timezone_utils import get_philippines_time_for_db
+        ph_timestamp = get_philippines_time_for_db()  # Get timestamp once for all rows
+        
+        # Check if file_id column exists (only check once)
+        has_file_id = False
+        try:
+            import database as db_module
+            if db_module.USE_POSTGRES:
+                # For PostgreSQL, check information_schema
+                cursor.execute("""
+                    SELECT column_name FROM information_schema.columns 
+                    WHERE table_name = 'classification_import_data' AND column_name = 'file_id'
+                """)
+                has_file_id = cursor.fetchone() is not None
+            else:
+                # For SQLite, use PRAGMA
+                cursor.execute("PRAGMA table_info(classification_import_data)")
+                columns = [col[1] for col in cursor.fetchall()]
+                has_file_id = 'file_id' in columns
+        except:
+            # Assume file_id exists if check fails
+            has_file_id = True
+        
+        # Prepare batch data
+        batch_data = []
         for row in csv_reader:
             try:
                 age = int(row['age'])
                 gender = row['gender'].strip().title()  # Normalize gender to Title Case
                 category = normalize_severity_category(row['category'].strip())  # Normalize category
                 
-                # Check if file_id column exists, if not use old format
-                try:
-                    # Use Philippines time for timestamp
-                    from timezone_utils import get_philippines_time_for_db
-                    ph_timestamp = get_philippines_time_for_db()
-                    
-                    cursor.execute('''
-                        INSERT INTO classification_import_data (age, gender, category, file_id, imported_at)
-                        VALUES (?, ?, ?, ?, ?)
-                    ''', (age, gender, category, file_id, ph_timestamp))
-                except:
-                    # Fallback to old format if file_id column doesn't exist
-                    # Use Philippines time for timestamp
-                    from timezone_utils import get_philippines_time_for_db
-                    ph_timestamp = get_philippines_time_for_db()
-                    
-                    cursor.execute('''
-                        INSERT INTO classification_import_data (age, gender, category, imported_at)
-                        VALUES (?, ?, ?, ?)
-                    ''', (age, gender, category, ph_timestamp))
+                if has_file_id:
+                    batch_data.append((age, gender, category, file_id, ph_timestamp))
+                else:
+                    batch_data.append((age, gender, category, ph_timestamp))
                 
                 imported_count += 1
             except (ValueError, KeyError) as e:
                 continue  # Skip invalid rows
+        
+        # Batch insert all rows at once for much better performance
+        if batch_data:
+            try:
+                if has_file_id:
+                    cursor.executemany('''
+                        INSERT INTO classification_import_data (age, gender, category, file_id, imported_at)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', batch_data)
+                else:
+                    cursor.executemany('''
+                        INSERT INTO classification_import_data (age, gender, category, imported_at)
+                        VALUES (?, ?, ?, ?)
+                    ''', batch_data)
+            except Exception as e:
+                # If batch insert fails, fall back to individual inserts
+                logger.warning(f"Batch insert failed, using individual inserts: {str(e)}")
+                for row_data in batch_data:
+                    try:
+                        if has_file_id:
+                            cursor.execute('''
+                                INSERT INTO classification_import_data (age, gender, category, file_id, imported_at)
+                                VALUES (?, ?, ?, ?, ?)
+                            ''', row_data)
+                        else:
+                            cursor.execute('''
+                                INSERT INTO classification_import_data (age, gender, category, imported_at)
+                                VALUES (?, ?, ?, ?)
+                            ''', row_data)
+                    except:
+                        continue
         
         # Update the total records count
         cursor.execute('''
