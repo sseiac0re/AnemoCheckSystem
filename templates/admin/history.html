@@ -192,7 +192,7 @@
                                             {% endif %}
                                         </span>
                                     </td>
-                                    <td>{{ "%.1f"|format(record.confidence * 100) }}%</td>
+                                    <td>{{ "%.2f"|format(record.confidence * 100) }}%</td>
                                     <td>
                                         <div class="btn-group" role="group">
                                             <button type="button" class="btn btn-sm btn-outline-info" 
@@ -422,7 +422,7 @@ function updateTable(records) {
                         ${displayClass}
                     </span>
                 </td>
-                <td>${record.confidence_percentage}%</td>
+                <td>${parseFloat(record.confidence_percentage).toFixed(2)}%</td>
                 <td>
                                         <div class="btn-group" role="group">
                                             <button type="button" class="btn btn-sm btn-outline-info" 

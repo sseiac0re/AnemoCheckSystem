@@ -169,7 +169,7 @@ def send_result_email_brevo_http(record_id: int, user_email: str, user_name: str
                             {record_data['predicted_class']}
                         </div>
                         <p style="text-align: center; margin-top: 10px;">
-                            <strong>Confidence: {record_data['confidence']:.1%}</strong>
+                            <strong>Confidence: {record_data['confidence']:.2%}</strong>
                         </p>
                     </div>
                     
@@ -214,7 +214,7 @@ def send_result_email_brevo_http(record_id: int, user_email: str, user_name: str
         Your anemia classification test has been completed. Here are your results:
         
         Classification Result: {record_data['predicted_class']}
-        Confidence: {record_data['confidence']:.1%}
+        Confidence: {record_data['confidence']:.2%}
         
         Complete Blood Count (CBC) Values:
         - White Blood Cell Count (WBC): {record_data['wbc']:.2f} 10³/µL

@@ -344,7 +344,7 @@ function displayUserDetails(data) {
                                 <td>${record.created_at}</td>
                                 <td>${record.hgb} g/dL</td>
                                 <td><span class="badge ${record.predicted_class === 'Anemic' ? 'bg-danger' : 'bg-success'}">${record.predicted_class}</span></td>
-                                <td>${(record.confidence * 100).toFixed(1)}%</td>
+                                <td>${(record.confidence * 100).toFixed(2)}%</td>
                             </tr>
                         `).join('')}
                     </tbody>

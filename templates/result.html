@@ -51,11 +51,11 @@
                                         {% elif record.predicted_class == 'Severe Anemia' %}bg-danger
                                         {% endif %}" 
                                         role="progressbar" 
-                                        style="width: {{ (record.confidence * 100)|round|int }}%;" 
-                                        aria-valuenow="{{ (record.confidence * 100)|round|int }}" 
+                                        style="width: {{ (record.confidence * 100)|round(2) }}%;" 
+                                        aria-valuenow="{{ (record.confidence * 100)|round(2) }}" 
                                         aria-valuemin="0" 
                                         aria-valuemax="100">
-                                        {{ (record.confidence * 100)|round|int }}%
+                                        {{ "%.2f"|format(record.confidence * 100) }}%
                                     </div>
                                 </div>
                             </div>
