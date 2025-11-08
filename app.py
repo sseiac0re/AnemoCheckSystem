@@ -1271,12 +1271,7 @@ def admin_dashboard():
     stats = db.get_statistics()
     
     # Get recent classifications with pagination
-    recent_data = db.get_recent_classifications(page=page, per_page=3)
-    
-    # Format timestamps with AM/PM
-    for record in recent_data['records']:
-        if 'created_at' in record:
-            record['created_at'] = format_philippines_time_ampm(record['created_at'])
+    recent_data = db.get_recent_classifications(page=page, per_page=5)
     
     # Get chart data with imported data
     charts_data = get_combined_charts_data()
