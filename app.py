@@ -67,11 +67,6 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
 
-# Add template context processor for timezone formatting
-@app.context_processor
-def inject_timezone_functions():
-    return dict(format_philippines_time_ampm=format_philippines_time_ampm)
-
 # Initialize anemia model
 anemia_model = AnemiaCBCModel()
 
@@ -1278,6 +1273,11 @@ def admin_dashboard():
     # Get recent classifications with pagination
     recent_data = db.get_recent_classifications(page=page, per_page=3)
     
+    # Format timestamps with AM/PM
+    for record in recent_data['records']:
+        if 'created_at' in record:
+            record['created_at'] = format_philippines_time_ampm(record['created_at'])
+    
     # Get chart data with imported data
     charts_data = get_combined_charts_data()
     
@@ -1424,11 +1424,6 @@ def admin_user_details(user_id):
     if not current_user.is_admin:
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
-    # Get pagination parameters
-    class_page = request.args.get('class_page', 1, type=int)
-    conv_page = request.args.get('conv_page', 1, type=int)
-    per_page = 3
-    
     # Get user data
     user_data = db.get_user(user_id)
     if not user_data:
@@ -1437,29 +1432,24 @@ def admin_user_details(user_id):
     # Get user's medical data
     medical_data = db.get_medical_data(user_id)
     
-    # Get user's classification history with pagination
-    classification_history = db.get_user_classification_history(user_id, limit=1000)  # Get all for pagination
-    total_classifications = len(classification_history)
-    class_offset = (class_page - 1) * per_page
-    paginated_classifications = classification_history[class_offset:class_offset + per_page]
+    # Get user's classification history (last 3)
+    classification_history = db.get_user_classification_history(user_id, limit=3)
     
-    # Get user's chat conversations with pagination
+    # Get user's chat conversations (last 3)
     all_conversations = simple_chat.get_user_conversations(user_id, is_admin=False)
-    total_conversations = len(all_conversations)
-    conv_offset = (conv_page - 1) * per_page
-    paginated_conversations = all_conversations[conv_offset:conv_offset + per_page]
+    conversations = all_conversations[:3] if all_conversations else []
     
     # Format timestamps with AM/PM
     formatted_created_at = format_philippines_time_ampm(user_data['created_at'])
     formatted_last_login = format_philippines_time_ampm(user_data['last_login']) if user_data['last_login'] else None
     
     # Format classification history timestamps
-    for record in paginated_classifications:
+    for record in classification_history:
         if 'created_at' in record:
             record['created_at'] = format_philippines_time_ampm(record['created_at'])
     
     # Format conversation timestamps
-    for conversation in paginated_conversations:
+    for conversation in conversations:
         if 'last_message_time' in conversation and conversation['last_message_time']:
             conversation['last_message_time'] = format_philippines_time_ampm(conversation['last_message_time'])
     
@@ -1479,24 +1469,8 @@ def admin_user_details(user_id):
             'last_login': formatted_last_login
         },
         'medical_data': medical_data,
-        'classification_history': paginated_classifications,
-        'classification_pagination': {
-            'page': class_page,
-            'per_page': per_page,
-            'total': total_classifications,
-            'total_pages': (total_classifications + per_page - 1) // per_page,
-            'has_prev': class_page > 1,
-            'has_next': class_offset + per_page < total_classifications
-        },
-        'conversations': paginated_conversations,
-        'conversation_pagination': {
-            'page': conv_page,
-            'per_page': per_page,
-            'total': total_conversations,
-            'total_pages': (total_conversations + per_page - 1) // per_page,
-            'has_prev': conv_page > 1,
-            'has_next': conv_offset + per_page < total_conversations
-        }
+        'classification_history': classification_history,
+        'conversations': conversations
     }
     
     return jsonify({'success': True, 'data': user_details})
