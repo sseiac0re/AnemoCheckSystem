@@ -106,18 +106,20 @@
                             {% endfor %}
                         </div>
                         <div class="col-md-6">
-                            {% for label, name, placeholder, input_type in [
-                                ('Neutrophils (%)', 'NEUTROPHILS', 'Enter Neutrophils (%)', 'number'),
-                                ('Lymphocytes (%)', 'LYMPHOCYTES', 'Enter Lymphocytes (%)', 'number'),
-                                ('Monocytes (%)', 'MONOCYTES', 'Enter Monocytes (%)', 'number'),
-                                ('Eosinophils (%)', 'EUSONIPHILS', 'Enter Eosinophils (%)', 'number'),
-                                ('Basophils (%)', 'BASOPHIL', 'Enter Basophils (%)', 'number'),
-                                ('Immature Granulocytes (%)', 'IMMATURE_GRANULYTES', 'Enter Immature Granulocytes (%)', 'number')
+                            {% for label, name, placeholder, input_type, is_required in [
+                                ('Neutrophils (%)', 'NEUTROPHILS', 'Enter Neutrophils (%)', 'number', True),
+                                ('Lymphocytes (%)', 'LYMPHOCYTES', 'Enter Lymphocytes (%)', 'number', True),
+                                ('Monocytes (%)', 'MONOCYTES', 'Enter Monocytes (%)', 'number', True),
+                                ('Eosinophils (%)', 'EUSONIPHILS', 'Enter Eosinophils (%)', 'number', True),
+                                ('Basophils (%)', 'BASOPHIL', 'Enter Basophils (%)', 'number', True),
+                                ('Immature Granulocytes (%)', 'IMMATURE_GRANULYTES', 'Enter Immature Granulocytes (%) (optional)', 'number', False)
                             ] %}
                             <div class="mb-3">
                                 <label class="form-label">{{ label }}</label>
-                                <input class="form-control" id="{{ name }}" name="{{ name }}" placeholder="{{ placeholder }}" required type="{{ input_type }}" step="any" autocomplete="off">
+                                <input class="form-control" id="{{ name }}" name="{{ name }}" placeholder="{{ placeholder }}" {% if is_required %}required{% endif %} type="{{ input_type }}" step="any" autocomplete="off">
+                                {% if is_required %}
                                 <div class="custom-error" id="{{ name }}-error">{{ label.split(' (')[0] }} is required.</div>
+                                {% endif %}
                             </div>
                             {% endfor %}
                             <div class="mb-3">
@@ -264,9 +266,9 @@
         }
     }
 
-    // All required field IDs (exclude notes)
-    const ids = ['WBC','RBC','HEMOGLOBIN','HEMATOCRIT','MCV','MCH','MCHC','PLATELET','NEUTROPHILS','LYMPHOCYTES','MONOCYTES','EUSONIPHILS','BASOPHIL','IMMATURE_GRANULYTES'];
-    const numberIds = ['WBC','RBC','HEMOGLOBIN','HEMATOCRIT','MCV','MCH','MCHC','NEUTROPHILS','LYMPHOCYTES','MONOCYTES','EUSONIPHILS','BASOPHIL','IMMATURE_GRANULYTES'];
+    // All required field IDs (exclude notes and IMMATURE_GRANULYTES)
+    const ids = ['WBC','RBC','HEMOGLOBIN','HEMATOCRIT','MCV','MCH','MCHC','PLATELET','NEUTROPHILS','LYMPHOCYTES','MONOCYTES','EUSONIPHILS','BASOPHIL'];
+    const numberIds = ['WBC','RBC','HEMOGLOBIN','HEMATOCRIT','MCV','MCH','MCHC','NEUTROPHILS','LYMPHOCYTES','MONOCYTES','EUSONIPHILS','BASOPHIL'];
 
     function isNumber(val){
         return val !== '' && !isNaN(val);

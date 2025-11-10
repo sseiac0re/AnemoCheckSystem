@@ -805,7 +805,7 @@ def xgbclasify():
     monocytes = float(request.form.get("MONOCYTES"))
     eosinophils = float(request.form.get("EUSONIPHILS"))
     basophil = float(request.form.get("BASOPHIL"))
-    immature_granulocytes = float(request.form.get("IMMATURE_GRANULYTES"))
+    immature_granulocytes = float(request.form.get("IMMATURE_GRANULYTES") or 0.0)
     notes = request.form.get("notes")  # Corrected from "mcv" to "notes"
 
     # Example birth date as a string
