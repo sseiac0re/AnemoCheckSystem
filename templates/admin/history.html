@@ -48,10 +48,6 @@
                             <i class="fas fa-download me-1"></i>
                             Export History
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="refreshData()">
-                            <i class="fas fa-sync me-1"></i>
-                            Refresh
-                        </button>
                     </div>
                 </div>
             </div>
@@ -144,8 +140,16 @@
 
             <!-- History Table -->
             <div class="card shadow mb-4">
-                <div class="card-header py-3">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">All Classifications</h6>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-danger me-2" onclick="confirmDeleteAll()">
+                            <i class="fas fa-trash me-1"></i> Delete All (entire table)
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="refreshData()">
+                            <i class="fas fa-sync me-1"></i> Refresh
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -804,6 +808,43 @@ function deleteRecord(recordId) {
 function exportHistory() {
     // Download full classification history CSV from server (admin only)
     window.location.href = '/admin/export/classification_history.csv';
+}
+
+function confirmDeleteAll() {
+    showDeleteConfirm({
+        title: 'Delete ALL Classification Records',
+        message: 'This will permanently delete every classification record in the system. This action cannot be undone.',
+        itemName: 'All classification records',
+        itemInfo: 'This includes every user\'s records across all time.',
+        confirmText: 'Delete All Records',
+        onConfirm: function() {
+            fetch('/admin/classification/delete-all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccessNotification({
+                        title: 'All Records Deleted',
+                        message: data.message,
+                        autoClose: true,
+                        autoCloseDelay: 2000
+                    });
+                    setTimeout(() => location.reload(), 2200);
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to delete.'));
+                }
+            })
+            .catch(err => {
+                console.error('Delete all error:', err);
+                alert('Error deleting all records. Please try again.');
+            });
+        }
+    });
 }
 
 function refreshData() {

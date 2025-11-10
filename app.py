@@ -2694,6 +2694,25 @@ def admin_delete_classification(record_id):
     return jsonify({'success': True, 'message': f'Classification record for {record["username"]} deleted successfully'})
 
 
+@app.route('/admin/classification/delete-all', methods=['POST'])
+@login_required
+def admin_delete_all_classifications():
+    """Delete ALL classification records. Admin-only, returns JSON."""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        conn = db.get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM classification_history")
+        conn.commit()
+        conn.close()
+        logger.warning(f"Admin {current_user.username} deleted ALL classification records")
+        return jsonify({'success': True, 'message': 'All classification records have been deleted.'})
+    except Exception as e:
+        logger.error(f"Failed to delete all classification records: {e}")
+        return jsonify({'success': False, 'error': 'Failed to delete all classification records.'}), 500
+
 @app.route('/admin/classification/filtered-data')
 @login_required
 def admin_classification_filtered_data():
