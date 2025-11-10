@@ -299,7 +299,8 @@
             {% set _is_normal = (rec.predicted_class is string and rec.predicted_class.lower().find('normal') != -1) %}
             {% set _patient = '-' %}
             {% if rec.notes and 'Patient:' in rec.notes %}
-              {% set _patient = rec.notes.split('Patient:')[1].split('.')|first.strip() %}
+              {% set _parts = rec.notes.split('Patient:')[1].split('.') %}
+              {% set _patient = (_parts[0] | trim) %}
             {% endif %}
             <tr>
               <td>{{ rec.id }}</td>
