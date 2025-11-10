@@ -28,34 +28,30 @@ def register_export_routes(app):
             created_at_formatted = '\t' + format_philippines_time_ampm(r.get('created_at')) if r.get('created_at') else ''
             # Use 0.8 (median from training data) as default if value is None/empty
             # Explicitly check for None vs 0 - 0 should be exported as 0, None should default to 0.8
-            # Try multiple ways to get the value from the row object
-            # SQLite Row objects can be accessed via dict conversion or direct key access
-            if hasattr(r, 'keys') and 'immature_granulocytes' in r.keys():
-                immature_granulocytes_raw = r['immature_granulocytes']
-            else:
-                immature_granulocytes_raw = r.get('immature_granulocytes')
+            # Get the value from the row dict
+            # The row is already converted to dict in database.py, so we can use .get()
+            immature_granulocytes_raw = r.get('immature_granulocytes')
             
-            # Handle None, empty string, or actual 0 value
-            # IMPORTANT: Check for None first, then handle 0.0 explicitly
-            if immature_granulocytes_raw is None:
-                immature_granulocytes_str = '0.8'  # Default when value is None/empty in database
-            elif isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == '':
-                immature_granulocytes_str = '0.8'  # Default when value is empty string
-            else:
-                # Convert to float - this handles both int 0 and float 0.0
-                try:
+            # Convert to float first, handling all cases
+            # This approach ensures 0.0 values are preserved
+            try:
+                # Try to convert - this will work for 0, 0.0, or any numeric value
+                # If it's None, this will raise TypeError
+                if immature_granulocytes_raw is None:
+                    immature_granulocytes_str = '0.8'  # Default when value is None
+                elif isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == '':
+                    immature_granulocytes_str = '0.8'  # Default when value is empty string
+                else:
                     immature_granulocytes = float(immature_granulocytes_raw)
-                    # Explicitly preserve 0.0 values (don't convert to default)
-                    # This ensures that explicit 0 values entered by user are preserved
-                    # Write 0.0 as "0.0" (not "0") to ensure it's not treated as empty by CSV/Excel
-                    # This ensures Excel recognizes it as a numeric value, not an empty cell
-                    if immature_granulocytes == 0.0 or immature_granulocytes == 0 or abs(immature_granulocytes) < 0.0001:
+                    # Explicitly preserve 0.0 values - write as "0.0" to ensure Excel recognizes it
+                    # Check for zero using multiple methods to be absolutely sure
+                    if immature_granulocytes == 0 or immature_granulocytes == 0.0 or (isinstance(immature_granulocytes, float) and abs(immature_granulocytes) < 0.0001):
                         immature_granulocytes_str = '0.0'
                     else:
                         immature_granulocytes_str = str(immature_granulocytes)
-                except (ValueError, TypeError):
-                    # If conversion fails, use default
-                    immature_granulocytes_str = '0.8'
+            except (ValueError, TypeError, AttributeError):
+                # If conversion fails or value is None, use default
+                immature_granulocytes_str = '0.8'
             
             cw.writerow([
                 created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'),
@@ -103,34 +99,30 @@ def register_export_routes(app):
             created_at_formatted = '\t' + format_philippines_time_ampm(r.get('created_at')) if r.get('created_at') else ''
             # Use 0.8 (median from training data) as default if value is None/empty
             # Explicitly check for None vs 0 - 0 should be exported as 0, None should default to 0.8
-            # Try multiple ways to get the value from the row object
-            # SQLite Row objects can be accessed via dict conversion or direct key access
-            if hasattr(r, 'keys') and 'immature_granulocytes' in r.keys():
-                immature_granulocytes_raw = r['immature_granulocytes']
-            else:
-                immature_granulocytes_raw = r.get('immature_granulocytes')
+            # Get the value from the row dict
+            # The row is already converted to dict in database.py, so we can use .get()
+            immature_granulocytes_raw = r.get('immature_granulocytes')
             
-            # Handle None, empty string, or actual 0 value
-            # IMPORTANT: Check for None first, then handle 0.0 explicitly
-            if immature_granulocytes_raw is None:
-                immature_granulocytes_str = '0.8'  # Default when value is None/empty in database
-            elif isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == '':
-                immature_granulocytes_str = '0.8'  # Default when value is empty string
-            else:
-                # Convert to float - this handles both int 0 and float 0.0
-                try:
+            # Convert to float first, handling all cases
+            # This approach ensures 0.0 values are preserved
+            try:
+                # Try to convert - this will work for 0, 0.0, or any numeric value
+                # If it's None, this will raise TypeError
+                if immature_granulocytes_raw is None:
+                    immature_granulocytes_str = '0.8'  # Default when value is None
+                elif isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == '':
+                    immature_granulocytes_str = '0.8'  # Default when value is empty string
+                else:
                     immature_granulocytes = float(immature_granulocytes_raw)
-                    # Explicitly preserve 0.0 values (don't convert to default)
-                    # This ensures that explicit 0 values entered by user are preserved
-                    # Write 0.0 as "0.0" (not "0") to ensure it's not treated as empty by CSV/Excel
-                    # This ensures Excel recognizes it as a numeric value, not an empty cell
-                    if immature_granulocytes == 0.0 or immature_granulocytes == 0 or abs(immature_granulocytes) < 0.0001:
+                    # Explicitly preserve 0.0 values - write as "0.0" to ensure Excel recognizes it
+                    # Check for zero using multiple methods to be absolutely sure
+                    if immature_granulocytes == 0 or immature_granulocytes == 0.0 or (isinstance(immature_granulocytes, float) and abs(immature_granulocytes) < 0.0001):
                         immature_granulocytes_str = '0.0'
                     else:
                         immature_granulocytes_str = str(immature_granulocytes)
-                except (ValueError, TypeError):
-                    # If conversion fails, use default
-                    immature_granulocytes_str = '0.8'
+            except (ValueError, TypeError, AttributeError):
+                # If conversion fails or value is None, use default
+                immature_granulocytes_str = '0.8'
             
             cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), immature_granulocytes_str, r.get('predicted_class'), confidence_formatted, r.get('recommendation'), r.get('notes')])
 
