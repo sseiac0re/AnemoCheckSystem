@@ -181,6 +181,14 @@ def init_db():
     )
 ''')
     
+    # Ensure patient columns exist even on existing DBs
+    try:
+        _ensure_patient_columns(cursor)
+        conn.commit()
+    except Exception as _e:
+        # Non-fatal; add during first insert too
+        pass
+    
     # Create medical_data table for additional patient information
     cursor.execute(f'''
     CREATE TABLE IF NOT EXISTS medical_data (
