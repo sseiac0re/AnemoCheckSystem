@@ -298,13 +298,23 @@
             {% for rec in other_person_records %}
             {% set _is_normal = (rec.predicted_class is string and rec.predicted_class.lower().find('normal') != -1) %}
             {% set _patient = '-' %}
+            {% set tooltip = None %}
             {% if rec.notes and rec.notes.startswith('Patient:') %}
               {% set _patient = (rec.notes.split('Patient:')[1].split('.') | first) | trim %}
+              {% set age_part = rec.notes.split('Age:')[1].split('.')|first if 'Age:' in rec.notes else '-' %}
+              {% set gender_part = rec.notes.split('Gender:')[1].split('.')|first if 'Gender:' in rec.notes else '-' %}
+              {% set tooltip = 'Full Name: ' ~ _patient ~ '\nAge: ' ~ age_part ~ '\nGender: ' ~ gender_part %}
             {% endif %}
             <tr>
               <td>{{ rec.id }}</td>
               <td>{{ rec.username }}</td>
-              <td>{{ _patient }}</td>
+              <td>
+                {% if tooltip %}
+                  <span data-bs-toggle="tooltip" title="{{ tooltip }}">{{ _patient }}</span>
+                {% else %}
+                  {{ _patient }}
+                {% endif %}
+              </td>
               <td>{{ rec.created_at }}</td>
               <td>{{ '%.2f'|format(rec.wbc) }}</td>
               <td>{{ '%.2f'|format(rec.rbc) }}</td>

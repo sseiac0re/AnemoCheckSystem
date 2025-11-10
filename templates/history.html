@@ -84,8 +84,9 @@
                             <td>
                                 {% if record.notes and record.notes.startswith('Patient:') %}
                                     {% set legacy_name = (record.notes.split('Patient:')[1].split('.') | first) | trim %}
+                                    {% set tooltip = 'Full Name: ' ~ legacy_name ~ '\nAge: ' ~ (record.notes.split('Age:')[1].split('.')|first if 'Age:' in record.notes else '-') ~ '\nGender: ' ~ (record.notes.split('Gender:')[1].split('.')|first if 'Gender:' in record.notes else '-') %}
                                     <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                        data-bs-toggle="tooltip" title="{{ legacy_name }}">
+                                        data-bs-toggle="tooltip" title="{{ tooltip }}">
                                         <i class="fas fa-user"></i>
                                     </button>
                                 {% else %}
