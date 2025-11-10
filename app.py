@@ -866,7 +866,8 @@ def xgbclasify():
         gender = 1 if other_person_gender.lower() == "female" else 0
         
         # Append person's name, age, and gender to notes so history/admin can display it
-        patient_info = f"Patient: {other_person_name}. Age: {other_person_age}. Gender: {other_person_gender.capitalize()}."
+        # Use pipe delimiter to avoid conflicts with periods in names
+        patient_info = f"Patient: {other_person_name}|Age: {other_person_age}|Gender: {other_person_gender.capitalize()}|"
         if notes:
             notes = patient_info + " " + notes
         else:
@@ -1284,17 +1285,22 @@ def result(record_id):
         record["created_at"] = format_philippines_time_ampm(record["created_at"])
     
     # Extract patient details from legacy notes format
+    # Supports both old format (period delimiter) and new format (pipe delimiter)
     def _extract_after(label: str, text: str) -> str | None:
         idx = text.find(label)
         if idx == -1:
             return None
         sub = text[idx + len(label):]
-        # take up to next '.'
+        # Try pipe delimiter first (new format), then period (legacy format)
+        pipe = sub.find('|')
         dot = sub.find('.')
-        if dot == -1:
-            val = sub.strip()
-        else:
+        # Use whichever delimiter comes first, or pipe if both exist
+        if pipe != -1 and (dot == -1 or pipe < dot):
+            val = sub[:pipe].strip()
+        elif dot != -1:
             val = sub[:dot].strip()
+        else:
+            val = sub.strip()
         return val or None
 
     patient_name_display = None
@@ -1309,14 +1315,18 @@ def result(record_id):
         patient_gender_display = _extract_after('Gender:', note_text)
 
         # Remove leading labeled parts in order, if present
+        # Support both pipe (new) and period (legacy) delimiters
         temp = note_text
         for label in ('Patient:', 'Age:', 'Gender:'):
             idx = temp.find(label)
             if idx == 0:
-                # cut off up to and including the next dot+space
                 sub = temp[len(label):]
+                # Try pipe delimiter first, then period
+                pipe = sub.find('|')
                 dot = sub.find('.')
-                if dot != -1:
+                if pipe != -1 and (dot == -1 or pipe < dot):
+                    temp = sub[pipe+1:].lstrip()
+                elif dot != -1:
                     temp = sub[dot+1:].lstrip()
                 else:
                     temp = sub.lstrip()
@@ -2452,9 +2462,13 @@ def export_classification_history():
                 lbl = label.lower()
                 if not text.lower().startswith(lbl): return None, text
                 sub = text[len(label):]
+                # Try pipe delimiter first (new format), then period/comma (legacy)
+                pipe = sub.find('|')
                 dot = sub.find('.'); comma = sub.find(',')
                 end = -1
-                if dot == -1 and comma == -1: end = -1
+                if pipe != -1:
+                    end = pipe
+                elif dot == -1 and comma == -1: end = -1
                 elif dot == -1: end = comma
                 elif comma == -1: end = dot
                 else: end = min(dot, comma)
@@ -3523,10 +3537,14 @@ def export_my_classification_history():
                 if not text.lower().startswith(lbl):
                     return None, text
                 sub = text[len(label):]
+                # Try pipe delimiter first (new format), then period/comma (legacy)
+                pipe = sub.find('|')
                 dot = sub.find('.')
                 comma = sub.find(',')
                 end = -1
-                if dot == -1 and comma == -1:
+                if pipe != -1:
+                    end = pipe
+                elif dot == -1 and comma == -1:
                     end = -1
                 elif dot == -1:
                     end = comma
