@@ -92,9 +92,13 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if record.notes %}
+                                {% set _notes = record.notes %}
+                                {% if _notes and _notes.startswith('Patient:') %}
+                                    {# Legacy rows had patient text in notes; hide it in Notes column #}
+                                    <span class="text-muted">-</span>
+                                {% elif _notes %}
                                     <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                        data-bs-toggle="tooltip" title="{{ record.notes }}">
+                                        data-bs-toggle="tooltip" title="{{ _notes }}">
                                         <i class="fas fa-sticky-note"></i>
                                     </button>
                                 {% else %}

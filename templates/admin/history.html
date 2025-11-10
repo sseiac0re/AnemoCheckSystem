@@ -281,6 +281,8 @@
               <th>ID</th>
               <th>User</th>
               <th>Patient</th>
+              <th>Age</th>
+              <th>Gender</th>
               <th>Date</th>
               <th>WBC</th>
               <th>RBC</th>
@@ -302,6 +304,8 @@
               <td>{{ rec.id }}</td>
               <td>{{ rec.username }}</td>
               <td>{{ _patient }}</td>
+              <td>{{ rec.patient_age if rec.patient_age is not none else '-' }}</td>
+              <td>{{ rec.patient_gender|capitalize if rec.patient_gender else '-' }}</td>
               <td>{{ rec.created_at }}</td>
               <td>{{ '%.2f'|format(rec.wbc) }}</td>
               <td>{{ '%.2f'|format(rec.rbc) }}</td>
