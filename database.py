@@ -581,11 +581,18 @@ def add_classification_record(*args, **kwargs):
 
     else:
         # Full CBC form - pick values from kwargs, defaulting to 0 or None where sensible
+        # Note: immature_granulocytes defaults to 0.8 (median from training data) for model consistency
         fields = [
             'wbc', 'rbc', 'hgb', 'hct', 'mcv', 'mch', 'mchc', 'plt',
             'neutrophils', 'lymphocytes', 'monocytes', 'eosinophils', 'basophil', 'immature_granulocytes'
         ]
-        values = [kwargs.get(f, 0.0) for f in fields]
+        # Use 0.8 for immature_granulocytes if not provided (matches training data median)
+        values = []
+        for f in fields:
+            if f == 'immature_granulocytes':
+                values.append(kwargs.get(f, 0.8))
+            else:
+                values.append(kwargs.get(f, 0.0))
         predicted_class = kwargs.get('predicted_class')
         confidence = kwargs.get('confidence')
         recommendation = kwargs.get('recommendation')

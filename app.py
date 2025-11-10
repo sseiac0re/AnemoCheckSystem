@@ -805,7 +805,9 @@ def xgbclasify():
     monocytes = float(request.form.get("MONOCYTES"))
     eosinophils = float(request.form.get("EUSONIPHILS"))
     basophil = float(request.form.get("BASOPHIL"))
-    immature_granulocytes = float(request.form.get("IMMATURE_GRANULYTES") or 0.0)
+    # Default to median value from training data (0.8) if not provided
+    # Using 0.0 was causing different predictions because training data median is 0.8
+    immature_granulocytes = float(request.form.get("IMMATURE_GRANULYTES") or 0.8)
     notes = request.form.get("notes")  # Corrected from "mcv" to "notes"
 
     # Check if classifying for another person
@@ -1084,7 +1086,9 @@ def xgb_try_clasify():
     monocytes = float(request.form.get("MONOCYTES"))
     eosinophils = float(request.form.get("EUSONIPHILS"))
     basophil = float(request.form.get("BASOPHIL"))
-    immature_granulocytes = float(request.form.get("IMMATURE_GRANULYTES") or 0.0)
+    # Default to median value from training data (0.8) if not provided
+    # Using 0.0 was causing different predictions because training data median is 0.8
+    immature_granulocytes = float(request.form.get("IMMATURE_GRANULYTES") or 0.8)
     #notes = request.form.get("notes")  # Corrected from "mcv" to "notes"
 
     
