@@ -104,7 +104,7 @@
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Full Name</label>
-                                <input class="form-control" id="otherPersonName" name="other_person_name" placeholder="Enter patient's full name" type="text" autocomplete="off">
+                                <input class="form-control" id="otherPersonName" name="other_person_name" placeholder="Enter first and last name" type="text" autocomplete="off">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Age</label>
@@ -446,6 +446,34 @@
         otherPersonGender.addEventListener('change', function() {
             if (classifyOtherPersonToggle && classifyOtherPersonToggle.checked) {
                 validateOtherPersonFields();
+            }
+        });
+    }
+    
+    // Prevent period/dot from being entered in Full Name field
+    if (otherPersonName) {
+        otherPersonName.addEventListener('keydown', function(e) {
+            // Prevent period key (both period and numpad period)
+            if (e.key === '.' || e.key === 'Period' || e.keyCode === 190 || e.keyCode === 110) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        // Also prevent paste of periods
+        otherPersonName.addEventListener('paste', function(e) {
+            const paste = (e.clipboardData || window.clipboardData).getData('text');
+            if (paste.includes('.')) {
+                e.preventDefault();
+                // Remove periods from pasted text and set the value
+                const cleaned = paste.replace(/\./g, '');
+                this.value = cleaned;
+                return false;
+            }
+        });
+        // Prevent input of periods via other methods
+        otherPersonName.addEventListener('input', function(e) {
+            if (this.value.includes('.')) {
+                this.value = this.value.replace(/\./g, '');
             }
         });
     }
