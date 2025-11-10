@@ -2370,6 +2370,10 @@ def admin_classification_details(record_id):
     if 'created_at' in record:
         record['created_at'] = format_philippines_time_ampm(record['created_at'])
     
+    # Ensure immature_granulocytes defaults to 0 if None
+    if record.get('immature_granulocytes') is None:
+        record['immature_granulocytes'] = 0
+    
     # Prepare response data
     classification_details = {
         'record': record,

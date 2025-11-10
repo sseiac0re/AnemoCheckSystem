@@ -614,7 +614,6 @@ function displayRecordDetails(data) {
                     </div>
                 </div>
                 
-                ${record.neutrophils || record.lymphocytes || record.monocytes || record.eosinophils || record.basophil || record.immature_granulocytes ? `
                 <div class="card mb-3">
                     <div class="card-header">
                         <h6 class="mb-0"><i class="fas fa-microscope me-2"></i>Differential Count</h6>
@@ -622,19 +621,18 @@ function displayRecordDetails(data) {
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-6">
-                                ${record.neutrophils ? `<div class="mb-2"><strong>Neutrophils:</strong> ${record.neutrophils}</div>` : ''}
-                                ${record.lymphocytes ? `<div class="mb-2"><strong>Lymphocytes:</strong> ${record.lymphocytes}</div>` : ''}
-                                ${record.monocytes ? `<div class="mb-2"><strong>Monocytes:</strong> ${record.monocytes}</div>` : ''}
+                                ${record.neutrophils !== null && record.neutrophils !== undefined ? `<div class="mb-2"><strong>Neutrophils:</strong> ${record.neutrophils}</div>` : ''}
+                                ${record.lymphocytes !== null && record.lymphocytes !== undefined ? `<div class="mb-2"><strong>Lymphocytes:</strong> ${record.lymphocytes}</div>` : ''}
+                                ${record.monocytes !== null && record.monocytes !== undefined ? `<div class="mb-2"><strong>Monocytes:</strong> ${record.monocytes}</div>` : ''}
                             </div>
                             <div class="col-sm-6">
-                                ${record.eosinophils ? `<div class="mb-2"><strong>Eosinophils:</strong> ${record.eosinophils}</div>` : ''}
-                                ${record.basophil ? `<div class="mb-2"><strong>Basophil:</strong> ${record.basophil}</div>` : ''}
-                                ${record.immature_granulocytes ? `<div class="mb-2"><strong>Immature Granulocytes:</strong> ${record.immature_granulocytes}</div>` : ''}
+                                ${record.eosinophils !== null && record.eosinophils !== undefined ? `<div class="mb-2"><strong>Eosinophils:</strong> ${record.eosinophils}</div>` : ''}
+                                ${record.basophil !== null && record.basophil !== undefined ? `<div class="mb-2"><strong>Basophil:</strong> ${record.basophil}</div>` : ''}
+                                <div class="mb-2"><strong>Immature Granulocytes:</strong> ${record.immature_granulocytes !== null && record.immature_granulocytes !== undefined ? record.immature_granulocytes : '0'}</div>
                             </div>
                         </div>
                     </div>
                 </div>
-                ` : ''}
             </div>
         </div>
         

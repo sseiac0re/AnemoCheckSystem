@@ -26,9 +26,11 @@ def register_export_routes(app):
             confidence_value = r.get('confidence')
             confidence_formatted = f"{float(confidence_value)*100:.2f}%" if confidence_value is not None else ''
             created_at_formatted = '\t' + format_philippines_time_ampm(r.get('created_at')) if r.get('created_at') else ''
+            immature_granulocytes = r.get('immature_granulocytes')
+            immature_granulocytes = immature_granulocytes if immature_granulocytes is not None else 0
             cw.writerow([
                 created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'),
-                r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), r.get('immature_granulocytes'), r.get('predicted_class'), confidence_formatted, r.get('notes')
+                r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), immature_granulocytes, r.get('predicted_class'), confidence_formatted, r.get('notes')
             ])
 
         output = make_response(si.getvalue())
@@ -70,7 +72,9 @@ def register_export_routes(app):
             confidence_value = r.get('confidence')
             confidence_formatted = f"{float(confidence_value)*100:.2f}%" if confidence_value is not None else ''
             created_at_formatted = '\t' + format_philippines_time_ampm(r.get('created_at')) if r.get('created_at') else ''
-            cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), r.get('immature_granulocytes'), r.get('predicted_class'), confidence_formatted, r.get('recommendation'), r.get('notes')])
+            immature_granulocytes = r.get('immature_granulocytes')
+            immature_granulocytes = immature_granulocytes if immature_granulocytes is not None else 0
+            cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), immature_granulocytes, r.get('predicted_class'), confidence_formatted, r.get('recommendation'), r.get('notes')])
 
         output = make_response(si.getvalue())
         output.headers['Content-Disposition'] = 'attachment; filename=anemocheck_classification_history.csv'
