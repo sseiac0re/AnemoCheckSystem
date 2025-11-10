@@ -589,6 +589,34 @@ def history():
     for record in history_data['records']:
         if 'created_at' in record:
             record['created_at'] = format_philippines_time_ampm(record['created_at'])
+        
+        # Prepare cleaned note (strip legacy embedded patient info)
+        raw_notes = (record.get('notes') or '').strip()
+        cleaned = raw_notes
+        if raw_notes.lower().startswith('patient:'):
+            temp = raw_notes
+            # Remove labeled prefixes in order if present at the beginning, tolerant to '.' or ',' as terminators
+            for label in ('Patient:', 'Age:', 'Gender:'):
+                if temp.lower().startswith(label.lower()):
+                    sub = temp[len(label):]
+                    # find next '.' or ',' as end of the labeled value
+                    dot_idx = sub.find('.')
+                    comma_idx = sub.find(',')
+                    end_idx = -1
+                    if dot_idx == -1 and comma_idx == -1:
+                        end_idx = -1
+                    elif dot_idx == -1:
+                        end_idx = comma_idx
+                    elif comma_idx == -1:
+                        end_idx = dot_idx
+                    else:
+                        end_idx = min(dot_idx, comma_idx)
+                    if end_idx != -1:
+                        temp = sub[end_idx + 1:].lstrip()
+                    else:
+                        temp = sub.lstrip()
+            cleaned = temp.strip()
+        record['note_clean'] = cleaned
     
     return render_template('history.html', history_data=history_data)
 
