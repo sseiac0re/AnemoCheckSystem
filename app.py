@@ -3449,33 +3449,76 @@ def export_my_classification_history():
     output = io.StringIO()
     writer = csv.writer(output)
 
-    # Header similar to user table view, with separate patient fields
+    # Split records into self vs another person
+    self_records = []
+    other_records = []
+    for r in records:
+        notes = (r.get('notes') or '').strip()
+        if r.get('patient_name') or r.get('patient_age') or r.get('patient_gender') or notes.lower().startswith('patient:'):
+            other_records.append(r)
+        else:
+            self_records.append(r)
+
+    # Section 1: Self classifications
+    writer.writerow(['Classifications (Self)'])
     writer.writerow([
         'Date',
+        'Full Name', 'Age', 'Gender',
         'WBC', 'RBC', 'HGB (g/dL)', 'HCT (%)', 'MCV (fL)', 'MCH (pg)', 'MCHC (g/dL)', 'PLT',
         'NEU (%)', 'LYM (%)', 'MON (%)', 'EOS (%)', 'BAS (%)', 'IGR (%)',
-        'Classification', 'Confidence',
-        'Patient Name', 'Patient Age', 'Patient Gender',
-        'Notes'
+        'Classification', 'Confidence', 'Notes'
     ])
+    from datetime import datetime
+    full_name = f"{(getattr(current_user, 'first_name', '') or '').strip()} {(getattr(current_user, 'last_name', '') or '').strip()}".strip()
+    user_gender = (getattr(current_user, 'gender', '') or '')
+    user_dob = getattr(current_user, 'date_of_birth', None)
+    for r in self_records:
+        formatted_date = '\t' + format_philippines_time_ampm(r.get('created_at', ''))
+        age_val = ''
+        try:
+            if user_dob and r.get('created_at'):
+                dob = datetime.strptime(user_dob, "%Y-%m-%d").date()
+                created_dt = datetime.strptime(str(r.get('created_at')).split('.')[0], "%Y-%m-%d %H:%M:%S")
+                d = created_dt.date()
+                age_val = d.year - dob.year - ((d.month, d.day) < (dob.month, dob.day))
+        except Exception:
+            age_val = ''
+        writer.writerow([
+            formatted_date,
+            full_name, age_val, user_gender,
+            r.get('wbc', ''), r.get('rbc', ''), r.get('hgb', ''), r.get('hct', ''), r.get('mcv', ''), r.get('mch', ''), r.get('mchc', ''), r.get('plt', ''),
+            r.get('neutrophils') if r.get('neutrophils') is not None else '',
+            r.get('lymphocytes') if r.get('lymphocytes') is not None else '',
+            r.get('monocytes') if r.get('monocytes') is not None else '',
+            r.get('eosinophils') if r.get('eosinophils') is not None else '',
+            r.get('basophil') if r.get('basophil') is not None else '',
+            r.get('immature_granulocytes') if r.get('immature_granulocytes') is not None else '',
+            r.get('predicted_class', ''),
+            f"{float(r.get('confidence', 0))*100:.2f}%" if r.get('confidence') is not None else '',
+            (r.get('notes') or '').strip()
+        ])
 
-    for record in records:
-        # Format timestamp with AM/PM and add tab to force Excel to display as text
-        formatted_date = '\t' + format_philippines_time_ampm(record.get('created_at', ''))
-        # Extract patient fields; support legacy inline notes by parsing when explicit columns are empty
-        patient_name = record.get('patient_name') or ''
-        patient_age = record.get('patient_age') or ''
-        patient_gender = record.get('patient_gender') or ''
-        raw_notes = (record.get('notes', '') or '').strip()
-        cleaned_notes = raw_notes
-        if (not patient_name and not patient_age and not patient_gender) and raw_notes.lower().startswith('patient:'):
-            temp = raw_notes
+    # Section 2: Another Person
+    writer.writerow([])
+    writer.writerow(['Classifications for Another Person'])
+    writer.writerow([
+        'Date',
+        'Patient Name', 'Patient Age', 'Patient Gender',
+        'WBC', 'RBC', 'HGB (g/dL)', 'HCT (%)', 'MCV (fL)', 'MCH (pg)', 'MCHC (g/dL)', 'PLT',
+        'NEU (%)', 'LYM (%)', 'MON (%)', 'EOS (%)', 'BAS (%)', 'IGR (%)',
+        'Classification', 'Confidence', 'Notes'
+    ])
+    def _parse_legacy(raw):
+        raw = (raw or '').strip()
+        name = age = gender = ''
+        cleaned = raw
+        if raw.lower().startswith('patient:'):
+            temp = raw
             def _extract(label, text):
                 lbl = label.lower()
                 if not text.lower().startswith(lbl):
                     return None, text
                 sub = text[len(label):]
-                # terminate on '.' or ','
                 dot = sub.find('.')
                 comma = sub.find(',')
                 end = -1
@@ -3490,41 +3533,45 @@ def export_my_classification_history():
                 value = sub[:end].strip() if end != -1 else sub.strip()
                 remainder = sub[end + 1:].lstrip() if end != -1 else ''
                 return value or None, remainder
-            name_val, rem = _extract('Patient:', temp)
-            if name_val is not None:
-                patient_name = name_val
-                temp = rem
-            age_val, rem = _extract('Age:', temp) if temp else (None, temp)
-            if age_val is not None:
-                patient_age = age_val
-                temp = rem
-            gender_val, rem = _extract('Gender:', temp) if temp else (None, temp)
-            if gender_val is not None:
-                patient_gender = gender_val
-                temp = rem
-            cleaned_notes = (temp or '').strip()
-
+            n, rem = _extract('Patient:', temp)
+            if n is not None:
+                name = n; temp = rem
+            a, rem = _extract('Age:', temp)
+            if a is not None:
+                age = a; temp = rem
+            g, rem = _extract('Gender:', temp)
+            if g is not None:
+                gender = g; temp = rem
+            cleaned = (temp or '').strip()
+        return name, age, gender, cleaned
+    for r in other_records:
+        formatted_date = '\t' + format_philippines_time_ampm(r.get('created_at', ''))
+        p_name = r.get('patient_name') or ''
+        p_age = r.get('patient_age') or ''
+        p_gender = r.get('patient_gender') or ''
+        raw_notes = (r.get('notes') or '').strip()
+        cleaned_notes = raw_notes
+        if not (p_name or p_age or p_gender):
+            n, a, g, cleaned = _parse_legacy(raw_notes)
+            p_name, p_age, p_gender = n or '', a or '', g or ''
+            cleaned_notes = cleaned
+        else:
+            # remove any legacy preface
+            _, _, _, cleaned = _parse_legacy(raw_notes)
+            if cleaned:
+                cleaned_notes = cleaned
         writer.writerow([
             formatted_date,
-            record.get('wbc', ''),
-            record.get('rbc', ''),
-            record.get('hgb', ''),
-            record.get('hct', ''),
-            record.get('mcv', ''),
-            record.get('mch', ''),
-            record.get('mchc', ''),
-            record.get('plt', ''),
-            record.get('neutrophils') if record.get('neutrophils') is not None else '',
-            record.get('lymphocytes') if record.get('lymphocytes') is not None else '',
-            record.get('monocytes') if record.get('monocytes') is not None else '',
-            record.get('eosinophils') if record.get('eosinophils') is not None else '',
-            record.get('basophil') if record.get('basophil') is not None else '',
-            record.get('immature_granulocytes') if record.get('immature_granulocytes') is not None else '',
-            record.get('predicted_class', ''),
-            f"{float(record.get('confidence', 0))*100:.2f}%" if record.get('confidence') is not None else '',
-            patient_name or '',
-            patient_age or '',
-            patient_gender or '',
+            p_name, p_age, p_gender,
+            r.get('wbc', ''), r.get('rbc', ''), r.get('hgb', ''), r.get('hct', ''), r.get('mcv', ''), r.get('mch', ''), r.get('mchc', ''), r.get('plt', ''),
+            r.get('neutrophils') if r.get('neutrophils') is not None else '',
+            r.get('lymphocytes') if r.get('lymphocytes') is not None else '',
+            r.get('monocytes') if r.get('monocytes') is not None else '',
+            r.get('eosinophils') if r.get('eosinophils') is not None else '',
+            r.get('basophil') if r.get('basophil') is not None else '',
+            r.get('immature_granulocytes') if r.get('immature_granulocytes') is not None else '',
+            r.get('predicted_class', ''),
+            f"{float(r.get('confidence', 0))*100:.2f}%" if r.get('confidence') is not None else '',
             cleaned_notes
         ])
 
