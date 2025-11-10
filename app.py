@@ -1650,15 +1650,18 @@ def admin_history():
     # Get paginated classification history
     history_data = db.get_classification_history_paginated(page=page, per_page=5)
     
-    # Fetch classifications submitted for another person (notes starting with 'Patient:')
-    other_person_records = db.get_other_person_classifications(limit=100)
+    # Fetch classifications submitted for another person (with pagination)
+    op_page = request.args.get('op_page', 1, type=int)
+    if op_page < 1:
+        op_page = 1
+    other_person_data = db.get_other_person_classifications_paginated(page=op_page, per_page=5)
 
     # Format timestamps with AM/PM for each record
     for record in history_data['records']:
         if 'created_at' in record:
             record['created_at'] = format_philippines_time_ampm(record['created_at'])
 
-    for rec in other_person_records:
+    for rec in other_person_data['records']:
         if 'created_at' in rec:
             rec['created_at'] = format_philippines_time_ampm(rec['created_at'])
 
@@ -1678,7 +1681,7 @@ def admin_history():
     
     return render_template('admin/history.html', 
                          history_data=history_data,
-                         other_person_records=other_person_records,
+                         other_person_data=other_person_data,
                          total_records=total_records,
                          anemic_cases=anemic_cases,
                          normal_cases=normal_cases,
@@ -2767,6 +2770,35 @@ def admin_classification_filtered_data():
     
     cursor.execute(query, params)
     records = cursor.fetchall()
+    
+    # Also fetch filtered "another person" entries
+    op_query = """
+        SELECT ch.*, u.username
+        FROM classification_history ch
+        LEFT JOIN users u ON ch.user_id = u.id
+        WHERE ch.notes LIKE 'Patient:%'
+    """
+    op_params = []
+    if user_filter:
+        op_query += " AND u.username = ?"
+        op_params.append(user_filter)
+    if result_filter:
+        if result_filter == 'Anemic':
+            op_query += " AND ch.predicted_class IN ('Mild', 'Moderate', 'Severe')"
+        else:
+            op_query += " AND ch.predicted_class = ?"
+            op_params.append(result_filter)
+    if date_from:
+        op_query += " AND DATE(ch.created_at) >= ?"
+        op_params.append(date_from)
+    if date_to:
+        op_query += " AND DATE(ch.created_at) <= ?"
+        op_params.append(date_to)
+    op_query += " ORDER BY ch.created_at DESC"
+    cursor2 = db.get_db_connection().cursor()
+    cursor2.execute(op_query, op_params)
+    other_records = cursor2.fetchall()
+    cursor2.connection.close()
     conn.close()
     
     # Convert to list of dicts
@@ -2780,10 +2812,21 @@ def admin_classification_filtered_data():
             record_dict['created_at'] = format_philippines_time_ampm(record_dict['created_at'])
         filtered_records.append(record_dict)
     
+    # Prepare other person list
+    other_filtered = []
+    for rec in other_records:
+        r = dict(rec)
+        if 'created_at' in r:
+            r['created_at'] = format_philippines_time_ampm(r['created_at'])
+        r['confidence_percentage'] = round((r.get('confidence') or 0) * 100, 2)
+        other_filtered.append(r)
+    
     return jsonify({
         'success': True,
         'data': filtered_records,
-        'total_count': len(filtered_records)
+        'total_count': len(filtered_records),
+        'other_person': other_filtered,
+        'other_total_count': len(other_filtered)
     })
 
 

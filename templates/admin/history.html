@@ -286,9 +286,10 @@
                                 <span class="text-muted small">Shows entries where the dashboard toggle was used</span>
                             </div>
                             <div class="card-body">
-                              {% if other_person_records and other_person_records|length > 0 %}
+                              {% set other_records = other_person_data.records %}
+                              {% if other_records and other_records|length > 0 %}
                               <div class="table-responsive">
-                                <table class="table table-bordered" width="100%" cellspacing="0">
+                                <table class="table table-bordered" id="otherPersonTable" width="100%" cellspacing="0">
                                   <thead>
                                     <tr>
                                       <th>ID</th>
@@ -310,7 +311,7 @@
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {% for rec in other_person_records %}
+                                    {% for rec in other_records %}
                                     {% set _is_normal = (rec.predicted_class is string and rec.predicted_class.lower().find('normal') != -1) %}
                                     {% set _patient = '-' %}
                                     {% set _age = rec.patient_age if rec.patient_age is defined and rec.patient_age is not none else '-' %}
@@ -357,6 +358,37 @@
                                   </tbody>
                                 </table>
                               </div>
+                              <!-- Pagination for other person -->
+                              {% if other_person_data.total_pages > 1 %}
+                              <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div class="text-muted">
+                                  Showing {{ ((other_person_data.page - 1) * other_person_data.per_page) + 1 }} to 
+                                  {{ other_person_data.page * other_person_data.per_page if other_person_data.page * other_person_data.per_page < other_person_data.total else other_person_data.total }} 
+                                  of {{ other_person_data.total }} classifications
+                                </div>
+                                <nav aria-label="Other person pagination">
+                                  <ul class="pagination pagination-sm mb-0">
+                                    {% if other_person_data.has_prev %}
+                                    <li class="page-item">
+                                      <a class="page-link" href="{{ url_for('admin_history', page=history_data.page, op_page=other_person_data.prev_num) }}">Previous</a>
+                                    </li>
+                                    {% endif %}
+                                    {% for page_num in range(1, other_person_data.total_pages + 1) %}
+                                      {% if page_num == other_person_data.page %}
+                                      <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                                      {% else %}
+                                      <li class="page-item"><a class="page-link" href="{{ url_for('admin_history', page=history_data.page, op_page=page_num) }}">{{ page_num }}</a></li>
+                                      {% endif %}
+                                    {% endfor %}
+                                    {% if other_person_data.has_next %}
+                                    <li class="page-item">
+                                      <a class="page-link" href="{{ url_for('admin_history', page=history_data.page, op_page=other_person_data.next_num) }}">Next</a>
+                                    </li>
+                                    {% endif %}
+                                  </ul>
+                                </nav>
+                              </div>
+                              {% endif %}
                               {% else %}
                                 <div class="text-muted">No classifications for another person yet.</div>
                               {% endif %}
@@ -455,6 +487,7 @@ function filterTable() {
         if (data.success) {
             updateTable(data.data);
             updateFilterStatus(data.total_count);
+            updateOtherPersonTable(data.other_person || []);
         } else {
             console.error('Filter error:', data.error);
             showTableError('Error loading filtered data');
@@ -466,6 +499,61 @@ function filterTable() {
     });
 }
 
+function updateOtherPersonTable(records) {
+    var tbody = document.querySelector('#otherPersonTable tbody');
+    if (!tbody) return;
+    
+    if (records.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="16" class="text-center py-4 text-muted">No records found for another person with the selected filters.</td>
+            </tr>
+        `;
+        return;
+    }
+    
+    var html = '';
+    records.forEach(function(rec) {
+        var isNormal = (rec.predicted_class || '').toLowerCase().indexOf('normal') !== -1;
+        var badgeClass = isNormal ? 'bg-success' : 'bg-danger';
+        // Derive patient details from explicit cols if present; else try legacy notes
+        var patient = rec.patient_name || '-';
+        var age = rec.patient_age || '-';
+        var gender = rec.patient_gender || '-';
+        if ((!patient || patient === '-') && rec.notes && rec.notes.startsWith('Patient:')) {
+            try {
+                patient = rec.notes.split('Patient:')[1].split('.')[0].trim();
+            } catch(_) {}
+            try {
+                age = rec.notes.includes('Age:') ? rec.notes.split('Age:')[1].split('.')[0].trim() : age;
+            } catch(_) {}
+            try {
+                gender = rec.notes.includes('Gender:') ? rec.notes.split('Gender:')[1].split('.')[0].trim() : gender;
+            } catch(_) {}
+        }
+        html += `
+            <tr>
+              <td>${rec.id}</td>
+              <td>${rec.username}</td>
+              <td>${patient || '-'}</td>
+              <td>${age || '-'}</td>
+              <td>${gender || '-'}</td>
+              <td>${rec.created_at || ''}</td>
+              <td>${rec.wbc ?? ''}</td>
+              <td>${rec.rbc ?? ''}</td>
+              <td>${rec.hgb ?? ''}</td>
+              <td>${rec.hct ?? ''}</td>
+              <td>${rec.mcv ?? ''}</td>
+              <td>${rec.mch ?? ''}</td>
+              <td>${rec.mchc ?? ''}</td>
+              <td>${rec.plt ?? ''}</td>
+              <td><span class="badge ${badgeClass}">${rec.predicted_class || ''}</span></td>
+              <td>${(rec.confidence_percentage ?? 0).toFixed ? rec.confidence_percentage.toFixed(2) : rec.confidence_percentage}%</td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
 function showTableLoading() {
     var tbody = document.querySelector('#historyTable tbody');
     tbody.innerHTML = `

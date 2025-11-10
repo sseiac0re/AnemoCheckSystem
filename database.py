@@ -1945,6 +1945,51 @@ def get_other_person_classifications(limit=100):
     conn.close()
     return rows
 
+def get_other_person_classifications_paginated(page=1, per_page=5):
+    """Get 'another person' classifications with pagination."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Calculate offset
+    if page < 1:
+        page = 1
+    offset = (page - 1) * per_page
+    
+    # Total count
+    cursor.execute("SELECT COUNT(*) as total FROM classification_history WHERE notes LIKE 'Patient:%'")
+    total = cursor.fetchone()['total']
+    
+    # Page data with username
+    cursor.execute(
+        """
+        SELECT ch.*, u.username
+        FROM classification_history ch
+        LEFT JOIN users u ON ch.user_id = u.id
+        WHERE ch.notes LIKE 'Patient:%'
+        ORDER BY ch.created_at DESC
+        LIMIT ? OFFSET ?
+        """,
+        (per_page, offset)
+    )
+    records = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    
+    total_pages = (total + per_page - 1) // per_page
+    has_prev = page > 1
+    has_next = page < total_pages
+    
+    return {
+        'records': records,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': total_pages,
+        'has_prev': has_prev,
+        'has_next': has_next,
+        'prev_num': page - 1 if has_prev else None,
+        'next_num': page + 1 if has_next else None
+    }
+
 def _ensure_patient_columns(cursor):
     """Ensure patient_name, patient_age, patient_gender columns exist on classification_history (SQLite-safe)."""
     try:
