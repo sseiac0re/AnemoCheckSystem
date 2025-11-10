@@ -96,15 +96,38 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% set _notes = record.notes %}
-                                {% if _notes and _notes.startswith('Patient:') %}
-                                    {# Legacy rows had patient text in notes; hide it in Notes column #}
-                                    <span class="text-muted">-</span>
-                                {% elif _notes %}
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                        data-bs-toggle="tooltip" title="{{ _notes }}">
-                                        <i class="fas fa-sticky-note"></i>
-                                    </button>
+                                {% set _notes = (record.notes or '').strip() %}
+                                {% if _notes %}
+                                    {% if _notes.startswith('Patient:') %}
+                                        {# Strip legacy in-note patient fields and keep the remainder as the actual note #}
+                                        {% set __temp = _notes %}
+                                        {% for __label in ['Patient:', 'Age:', 'Gender:'] %}
+                                            {% if __temp.startswith(__label) %}
+                                                {% set __sub = __temp[__label|length:] %}
+                                                {% set __dot = __sub.find('.') %}
+                                                {% if __dot != -1 %}
+                                                    {% set __temp = __sub[__dot + 1:] %}
+                                                {% else %}
+                                                    {% set __temp = __sub %}
+                                                {% endif %}
+                                                {% set __temp = __temp.lstrip() %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% set cleaned_notes = __temp.strip() %}
+                                        {% if cleaned_notes %}
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                                data-bs-toggle="tooltip" title="{{ cleaned_notes }}">
+                                                <i class="fas fa-sticky-note"></i>
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                            data-bs-toggle="tooltip" title="{{ _notes }}">
+                                            <i class="fas fa-sticky-note"></i>
+                                        </button>
+                                    {% endif %}
                                 {% else %}
                                     <span class="text-muted">-</span>
                                 {% endif %}
