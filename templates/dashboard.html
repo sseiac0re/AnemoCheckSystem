@@ -86,6 +86,43 @@
             <div class="card-body">
                 <form action="{{ url_for('xgbclasify') }}" method="post" id="quickCheckForm" novalidate>
                     {{ form.hidden_tag() }}
+                    
+                    <!-- Toggle for classifying another person -->
+                    <div class="mb-4 pb-3 border-bottom">
+                        <div class="form-check form-switch d-flex align-items-center">
+                            <input class="form-check-input" type="checkbox" id="classifyOtherPerson" name="classify_other_person" style="width: 3rem; height: 1.5rem; cursor: pointer;">
+                            <label class="form-check-label ms-3" for="classifyOtherPerson" style="cursor: pointer; font-weight: 500;">
+                                <i class="fas fa-user-plus me-2" style="color:#d32f2f;"></i>Classify for another person
+                            </label>
+                        </div>
+                        <small class="text-muted ms-5">Enable this to classify anemia for someone else using their information</small>
+                    </div>
+                    
+                    <!-- Alternative Person Information (hidden by default) -->
+                    <div id="otherPersonInfo" style="display: none;" class="mb-4 pb-3 border-bottom">
+                        <h6 class="mb-3"><i class="fas fa-user me-2" style="color:#d32f2f;"></i>Patient Information</h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Full Name</label>
+                                <input class="form-control" id="otherPersonName" name="other_person_name" placeholder="Enter patient's full name" type="text" autocomplete="off">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Age</label>
+                                <input class="form-control" id="otherPersonAge" name="other_person_age" placeholder="Enter age" type="number" min="0" max="150" step="1" autocomplete="off">
+                                <div class="custom-error" id="otherPersonAge-error" style="display: none;">Age is required when classifying for another person.</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Gender</label>
+                                <select class="form-select" id="otherPersonGender" name="other_person_gender" autocomplete="off">
+                                    <option value="">Select gender</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                </select>
+                                <div class="custom-error" id="otherPersonGender-error" style="display: none;">Gender is required when classifying for another person.</div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="row">
                         <div class="col-md-6">
                             {% for label, name, placeholder, input_type in [
@@ -299,9 +336,99 @@
         el.addEventListener('blur', ()=>{ validateField(id); });
     });
 
+    // Toggle for classifying another person
+    const classifyOtherPersonToggle = document.getElementById('classifyOtherPerson');
+    const otherPersonInfo = document.getElementById('otherPersonInfo');
+    const otherPersonAge = document.getElementById('otherPersonAge');
+    const otherPersonGender = document.getElementById('otherPersonGender');
+    const otherPersonName = document.getElementById('otherPersonName');
+    
+    if (classifyOtherPersonToggle) {
+        classifyOtherPersonToggle.addEventListener('change', function() {
+            if (this.checked) {
+                otherPersonInfo.style.display = 'block';
+                // Make age and gender required when toggle is on
+                otherPersonAge.setAttribute('required', 'required');
+                otherPersonGender.setAttribute('required', 'required');
+            } else {
+                otherPersonInfo.style.display = 'none';
+                // Remove required attribute when toggle is off
+                otherPersonAge.removeAttribute('required');
+                otherPersonGender.removeAttribute('required');
+                // Clear values
+                otherPersonAge.value = '';
+                otherPersonGender.value = '';
+                otherPersonName.value = '';
+                // Hide any error messages
+                hideError('otherPersonAge');
+                hideError('otherPersonGender');
+            }
+        });
+    }
+    
+    // Validate other person fields when toggle is on
+    function validateOtherPersonFields() {
+        if (!classifyOtherPersonToggle || !classifyOtherPersonToggle.checked) {
+            return true; // No validation needed if toggle is off
+        }
+        
+        let valid = true;
+        
+        // Validate age
+        const ageVal = otherPersonAge.value.trim();
+        if (!ageVal) {
+            showError('otherPersonAge', 'Age is required when classifying for another person.');
+            valid = false;
+        } else if (isNaN(ageVal) || parseFloat(ageVal) < 0 || parseFloat(ageVal) > 150) {
+            showError('otherPersonAge', 'Please enter a valid age (0-150).');
+            valid = false;
+        } else {
+            hideError('otherPersonAge');
+        }
+        
+        // Validate gender
+        const genderVal = otherPersonGender.value.trim();
+        if (!genderVal) {
+            showError('otherPersonGender', 'Gender is required when classifying for another person.');
+            valid = false;
+        } else {
+            hideError('otherPersonGender');
+        }
+        
+        return valid;
+    }
+    
+    // Add validation on input
+    if (otherPersonAge) {
+        otherPersonAge.addEventListener('input', function() {
+            if (classifyOtherPersonToggle && classifyOtherPersonToggle.checked) {
+                validateOtherPersonFields();
+            }
+        });
+        otherPersonAge.addEventListener('blur', function() {
+            if (classifyOtherPersonToggle && classifyOtherPersonToggle.checked) {
+                validateOtherPersonFields();
+            }
+        });
+    }
+    
+    if (otherPersonGender) {
+        otherPersonGender.addEventListener('change', function() {
+            if (classifyOtherPersonToggle && classifyOtherPersonToggle.checked) {
+                validateOtherPersonFields();
+            }
+        });
+    }
+
     form.addEventListener('submit', function(e){
         let ok = true;
         ids.forEach(id=>{ if (!validateField(id)) ok = false; });
+        
+        // Validate other person fields if toggle is on
+        if (!validateOtherPersonFields()) {
+            ok = false;
+        }
+        
         if (!ok){
             e.preventDefault();
         }

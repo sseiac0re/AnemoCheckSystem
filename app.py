@@ -808,18 +808,43 @@ def xgbclasify():
     immature_granulocytes = float(request.form.get("IMMATURE_GRANULYTES") or 0.0)
     notes = request.form.get("notes")  # Corrected from "mcv" to "notes"
 
-    # Example birth date as a string
-    birth_date_str = current_user.date_of_birth
+    # Check if classifying for another person
+    classify_other_person = request.form.get("classify_other_person") == "on"
+    
+    if classify_other_person:
+        # Use alternative person's information
+        other_person_age = request.form.get("other_person_age")
+        other_person_gender = request.form.get("other_person_gender")
+        other_person_name = request.form.get("other_person_name", "").strip()
+        
+        if not other_person_age or not other_person_gender:
+            flash("Age and gender are required when classifying for another person.", "error")
+            return redirect(url_for('dashboard'))
+        
+        age = int(float(other_person_age))
+        gender = 1 if other_person_gender.lower() == "female" else 0
+        
+        # Add person's name to notes if provided
+        if other_person_name:
+            patient_info = f"Patient: {other_person_name}. "
+            notes = patient_info + (notes if notes else "")
+    else:
+        # Use logged-in user's information (default behavior)
+        birth_date_str = current_user.date_of_birth
+        
+        if not birth_date_str:
+            flash("Please update your date of birth in your profile to use this feature.", "error")
+            return redirect(url_for('dashboard'))
 
-    # Convert string to date object
-    birth_date = datetime.strptime(birth_date_str, "%Y-%m-%d").date()
+        # Convert string to date object
+        birth_date = datetime.strptime(birth_date_str, "%Y-%m-%d").date()
 
-    # Get today's date
-    today = datetime.today().date()
+        # Get today's date
+        today = datetime.today().date()
 
-    # Calculate age
-    age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-    gender = 1 if current_user.gender.lower() == "female" else 0
+        # Calculate age
+        age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+        gender = 1 if current_user.gender and current_user.gender.lower() == "female" else 0
 
     user_input = [
         age,
