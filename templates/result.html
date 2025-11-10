@@ -65,7 +65,19 @@
                                 <div>{{ record.created_at }}</div>
                             </div>
                             
-                            {% if record.notes %}
+                            {% if record.patient_name or record.patient_age or record.patient_gender %}
+                                <div class="mt-3 text-start">
+                                    <div class="small text-muted">Patient Information</div>
+                                    <div class="border rounded p-2">
+                                        <i class="fas fa-user me-1"></i>
+                                        {{ record.patient_name or '-' }}
+                                        {% if record.patient_age %}, {{ record.patient_age }}{% endif %}
+                                        {% if record.patient_gender %}, {{ record.patient_gender|capitalize }}{% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
+                            {% if record.notes and not record.notes.startswith('Patient:') %}
                                 <div class="mt-3">
                                     <div class="small text-muted">Notes</div>
                                     <div class="border rounded p-2 text-start">{{ record.notes }}</div>
