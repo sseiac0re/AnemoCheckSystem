@@ -744,6 +744,41 @@ function displayRecordDetails(data) {
     const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'N/A';
     const isNormal = record.predicted_class === 'Normal';
     
+    // Extract patient info and cleaned notes from legacy or explicit fields
+    let patientName = record.patient_name || null;
+    let patientAge = record.patient_age || null;
+    let patientGender = record.patient_gender || null;
+    let cleanedNotes = (record.notes || '').trim();
+    if ((!patientName && !patientAge && !patientGender) && cleanedNotes.startsWith('Patient:')) {
+        // Helper to extract value after label up to next '.' or ','
+        const extractAfter = (label, text) => {
+            const idx = text.indexOf(label);
+            if (idx === -1) return [null, text];
+            const sub = text.slice(idx + label.length);
+            const dot = sub.indexOf('.');
+            const comma = sub.indexOf(',');
+            let end = -1;
+            if (dot === -1 && comma === -1) end = -1;
+            else if (dot === -1) end = comma;
+            else if (comma === -1) end = dot;
+            else end = Math.min(dot, comma);
+            const value = (end !== -1 ? sub.slice(0, end) : sub).trim();
+            const remainder = (end !== -1 ? sub.slice(end + 1) : '').trimStart();
+            return [value || null, remainder];
+        };
+        let temp = cleanedNotes;
+        [patientName, temp] = extractAfter('Patient:', temp);
+        let ageVal; [ageVal, temp] = extractAfter('Age:', temp);
+        if (ageVal) patientAge = ageVal;
+        let genderVal; [genderVal, temp] = extractAfter('Gender:', temp);
+        if (genderVal) patientGender = genderVal;
+        cleanedNotes = temp.trim();
+    }
+    // Normalize empty values
+    if (patientName === '') patientName = null;
+    if (patientAge === '') patientAge = null;
+    if (patientGender === '') patientGender = null;
+    
     document.getElementById('recordDetailsContent').innerHTML = `
         <div class="row">
             <div class="col-md-6">
@@ -790,6 +825,19 @@ function displayRecordDetails(data) {
                         </div>
                     </div>
                 </div>
+                
+                ${patientName || patientAge || patientGender ? `
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-user me-2"></i>Patient Information</h6>
+                    </div>
+                    <div class="card-body">
+                        ${patientName ? `<div class="row"><div class="col-sm-4"><strong>Full Name:</strong></div><div class="col-sm-8">${patientName}</div></div>` : ''}
+                        ${patientAge ? `<div class="row"><div class="col-sm-4"><strong>Age:</strong></div><div class="col-sm-8">${patientAge}</div></div>` : ''}
+                        ${patientGender ? `<div class="row"><div class="col-sm-4"><strong>Gender:</strong></div><div class="col-sm-8">${patientGender}</div></div>` : ''}
+                    </div>
+                </div>
+                ` : ''}
             </div>
             
             <div class="col-md-6">
@@ -848,13 +896,13 @@ function displayRecordDetails(data) {
         </div>
         ` : ''}
         
-        ${record.notes ? `
+        ${cleanedNotes ? `
         <div class="card">
             <div class="card-header">
                 <h6 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Notes</h6>
             </div>
             <div class="card-body">
-                <p class="mb-0">${record.notes}</p>
+                <p class="mb-0">${cleanedNotes}</p>
             </div>
         </div>
         ` : ''}
