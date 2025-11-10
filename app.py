@@ -818,6 +818,10 @@ def xgbclasify():
     # Check if classifying for another person
     classify_other_person = request.form.get("classify_other_person") == "on"
     
+    patient_name = None
+    patient_age = None
+    patient_gender_text = None
+    
     if classify_other_person:
         # Use alternative person's information
         other_person_age = request.form.get("other_person_age")
