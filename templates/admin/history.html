@@ -297,11 +297,7 @@
           <tbody>
             {% for rec in other_person_records %}
             {% set _is_normal = (rec.predicted_class is string and rec.predicted_class.lower().find('normal') != -1) %}
-            {% set _patient = '-' %}
-            {% if rec.notes and 'Patient:' in rec.notes %}
-              {% set _parts = rec.notes.split('Patient:')[1].split('.') %}
-              {% set _patient = (_parts[0] | trim) %}
-            {% endif %}
+            {% set _patient = rec.patient_name if rec.patient_name else '-' %}
             <tr>
               <td>{{ rec.id }}</td>
               <td>{{ rec.username }}</td>

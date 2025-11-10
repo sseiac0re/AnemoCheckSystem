@@ -831,6 +831,9 @@ def xgbclasify():
         age = int(float(other_person_age))
         gender = 1 if other_person_gender.lower() == "female" else 0
         
+        patient_name = other_person_name or None
+        patient_age = age
+        patient_gender_text = other_person_gender.lower()
         # Add person's name to notes if provided
         if other_person_name:
             patient_info = f"Patient: {other_person_name}. "
