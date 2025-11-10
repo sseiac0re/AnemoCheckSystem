@@ -1256,28 +1256,43 @@ def result(record_id):
         record["created_at"] = format_philippines_time_ampm(record["created_at"])
     
     # Extract patient details from legacy notes format
+    def _extract_after(label: str, text: str) -> str | None:
+        idx = text.find(label)
+        if idx == -1:
+            return None
+        sub = text[idx + len(label):]
+        # take up to next '.'
+        dot = sub.find('.')
+        if dot == -1:
+            val = sub.strip()
+        else:
+            val = sub[:dot].strip()
+        return val or None
+
     patient_name_display = None
     patient_age_display = None
     patient_gender_display = None
-    patient_note_remainder = record.get('notes') or ''
+    patient_note_remainder = (record.get('notes') or '').strip()
 
-    if record.get('notes') and record['notes'].startswith('Patient:'):
-        note_text = record['notes']
-        name_match = re.search(r'Patient:\s*([^\.]+)\.', note_text)
-        age_match = re.search(r'Age:\s*([^\.]+)\.', note_text)
-        gender_match = re.search(r'Gender:\s*([^\.]+)\.', note_text)
-        if name_match:
-            patient_name_display = name_match.group(1).strip()
-        if age_match:
-            patient_age_display = age_match.group(1).strip()
-        if gender_match:
-            patient_gender_display = gender_match.group(1).strip()
+    note_text = record.get('notes') or ''
+    if note_text.startswith('Patient:'):
+        patient_name_display = _extract_after('Patient:', note_text)
+        patient_age_display = _extract_after('Age:', note_text)
+        patient_gender_display = _extract_after('Gender:', note_text)
 
-        # Remove the patient details from the notes for separate display
-        patient_note_remainder = re.sub(r'^Patient:\s*[^\.]+\.\s*', '', note_text)
-        patient_note_remainder = re.sub(r'^Age:\s*[^\.]+\.\s*', '', patient_note_remainder)
-        patient_note_remainder = re.sub(r'^Gender:\s*[^\.]+\.\s*', '', patient_note_remainder)
-        patient_note_remainder = patient_note_remainder.strip()
+        # Remove leading labeled parts in order, if present
+        temp = note_text
+        for label in ('Patient:', 'Age:', 'Gender:'):
+            idx = temp.find(label)
+            if idx == 0:
+                # cut off up to and including the next dot+space
+                sub = temp[len(label):]
+                dot = sub.find('.')
+                if dot != -1:
+                    temp = sub[dot+1:].lstrip()
+                else:
+                    temp = sub.lstrip()
+        patient_note_remainder = temp.strip()
 
     record['patient_name_display'] = patient_name_display
     record['patient_age_display'] = patient_age_display
