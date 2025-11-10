@@ -303,9 +303,11 @@
         }
     }
 
-    // All required field IDs (exclude notes and IMMATURE_GRANULYTES)
+    // All required field IDs (exclude notes)
     const ids = ['WBC','RBC','HEMOGLOBIN','HEMATOCRIT','MCV','MCH','MCHC','PLATELET','NEUTROPHILS','LYMPHOCYTES','MONOCYTES','EUSONIPHILS','BASOPHIL'];
     const numberIds = ['WBC','RBC','HEMOGLOBIN','HEMATOCRIT','MCV','MCH','MCHC','NEUTROPHILS','LYMPHOCYTES','MONOCYTES','EUSONIPHILS','BASOPHIL'];
+    // Optional field that should still get visual feedback
+    const optionalNumberIds = ['IMMATURE_GRANULYTES'];
 
     function isNumber(val){
         return val !== '' && !isNaN(val);
@@ -328,12 +330,40 @@
         return true;
     }
 
-    // Live validation
+    // Validate optional field (no error if empty, but mark success if valid)
+    function validateOptionalField(id){
+        const el = document.getElementById(id);
+        if (!el) return true;
+        const val = el.value.trim();
+        if (val && !isNumber(val)){
+            showError(id, 'Please enter a valid number.');
+            return false;
+        }
+        if (val && isNumber(val)){
+            hideError(id);
+            markSuccess(id);
+        } else {
+            hideError(id);
+            // Remove success class if field is empty
+            el.classList.remove('success');
+        }
+        return true;
+    }
+
+    // Live validation for required fields
     ids.forEach(id=>{
         const el = document.getElementById(id);
         if (!el) return;
         el.addEventListener('input', ()=>{ validateField(id); });
         el.addEventListener('blur', ()=>{ validateField(id); });
+    });
+    
+    // Live validation for optional Immature Granulocytes field
+    optionalNumberIds.forEach(id=>{
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', ()=>{ validateOptionalField(id); });
+        el.addEventListener('blur', ()=>{ validateOptionalField(id); });
     });
 
     // Toggle for classifying another person
