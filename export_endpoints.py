@@ -34,24 +34,27 @@ def register_export_routes(app):
             
             # Convert to float first, handling all cases
             # This approach ensures 0.0 values are preserved
-            try:
-                # Try to convert - this will work for 0, 0.0, or any numeric value
-                # If it's None, this will raise TypeError
-                if immature_granulocytes_raw is None:
-                    immature_granulocytes_str = '0.8'  # Default when value is None
-                elif isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == '':
-                    immature_granulocytes_str = '0.8'  # Default when value is empty string
-                else:
+            # IMPORTANT: We need to distinguish between None (not provided) and 0.0 (explicitly provided)
+            if immature_granulocytes_raw is None:
+                # Value is None - use default
+                immature_granulocytes_str = '0.8'
+            elif isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == '':
+                # Value is empty string - use default
+                immature_granulocytes_str = '0.8'
+            else:
+                # Try to convert to float
+                try:
                     immature_granulocytes = float(immature_granulocytes_raw)
-                    # Explicitly preserve 0.0 values - write as "0.0" to ensure Excel recognizes it
-                    # Check for zero using multiple methods to be absolutely sure
-                    if immature_granulocytes == 0 or immature_granulocytes == 0.0 or (isinstance(immature_granulocytes, float) and abs(immature_granulocytes) < 0.0001):
+                    # Explicitly preserve 0.0 values - this is a valid value entered by user
+                    # Write as "0.0" (with decimal) to ensure Excel recognizes it as a number, not empty
+                    if immature_granulocytes == 0 or immature_granulocytes == 0.0 or abs(immature_granulocytes) < 0.0001:
+                        # Write as "0.0" to ensure it's recognized as a numeric value
                         immature_granulocytes_str = '0.0'
                     else:
                         immature_granulocytes_str = str(immature_granulocytes)
-            except (ValueError, TypeError, AttributeError):
-                # If conversion fails or value is None, use default
-                immature_granulocytes_str = '0.8'
+                except (ValueError, TypeError, AttributeError):
+                    # If conversion fails, use default
+                    immature_granulocytes_str = '0.8'
             
             cw.writerow([
                 created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'),
@@ -105,24 +108,27 @@ def register_export_routes(app):
             
             # Convert to float first, handling all cases
             # This approach ensures 0.0 values are preserved
-            try:
-                # Try to convert - this will work for 0, 0.0, or any numeric value
-                # If it's None, this will raise TypeError
-                if immature_granulocytes_raw is None:
-                    immature_granulocytes_str = '0.8'  # Default when value is None
-                elif isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == '':
-                    immature_granulocytes_str = '0.8'  # Default when value is empty string
-                else:
+            # IMPORTANT: We need to distinguish between None (not provided) and 0.0 (explicitly provided)
+            if immature_granulocytes_raw is None:
+                # Value is None - use default
+                immature_granulocytes_str = '0.8'
+            elif isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == '':
+                # Value is empty string - use default
+                immature_granulocytes_str = '0.8'
+            else:
+                # Try to convert to float
+                try:
                     immature_granulocytes = float(immature_granulocytes_raw)
-                    # Explicitly preserve 0.0 values - write as "0.0" to ensure Excel recognizes it
-                    # Check for zero using multiple methods to be absolutely sure
-                    if immature_granulocytes == 0 or immature_granulocytes == 0.0 or (isinstance(immature_granulocytes, float) and abs(immature_granulocytes) < 0.0001):
+                    # Explicitly preserve 0.0 values - this is a valid value entered by user
+                    # Write as "0.0" (with decimal) to ensure Excel recognizes it as a number, not empty
+                    if immature_granulocytes == 0 or immature_granulocytes == 0.0 or abs(immature_granulocytes) < 0.0001:
+                        # Write as "0.0" to ensure it's recognized as a numeric value
                         immature_granulocytes_str = '0.0'
                     else:
                         immature_granulocytes_str = str(immature_granulocytes)
-            except (ValueError, TypeError, AttributeError):
-                # If conversion fails or value is None, use default
-                immature_granulocytes_str = '0.8'
+                except (ValueError, TypeError, AttributeError):
+                    # If conversion fails, use default
+                    immature_granulocytes_str = '0.8'
             
             cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), immature_granulocytes_str, r.get('predicted_class'), confidence_formatted, r.get('recommendation'), r.get('notes')])
 
