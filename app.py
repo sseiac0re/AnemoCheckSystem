@@ -1679,6 +1679,9 @@ def admin_history():
     else:
         anemia_rate = 0.0
     
+    # Get slide parameter to preserve carousel state
+    active_slide = request.args.get('slide', 0, type=int)
+    
     return render_template('admin/history.html', 
                          history_data=history_data,
                          other_person_data=other_person_data,
@@ -1686,7 +1689,8 @@ def admin_history():
                          anemic_cases=anemic_cases,
                          normal_cases=normal_cases,
                          anemia_rate=anemia_rate,
-                         stats=stats)
+                         stats=stats,
+                         active_slide=active_slide)
 
 
 @app.route('/admin/settings', methods=['GET', 'POST'])

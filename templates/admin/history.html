@@ -152,7 +152,7 @@
             <div id="classTablesCarousel" class="carousel slide" data-bs-ride="false" data-bs-interval="false">
                 <div class="carousel-inner">
                     <!-- Slide 1: All Classifications -->
-                    <div class="carousel-item active">
+                    <div class="carousel-item {% if active_slide == 0 %}active{% endif %}">
                         <div class="card shadow mb-4">
                             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                                 <h6 class="m-0 font-weight-bold text-primary">All Classifications</h6>
@@ -243,7 +243,7 @@
                                         <ul class="pagination pagination-sm mb-0">
                                             {% if history_data.has_prev %}
                                             <li class="page-item">
-                                                <a class="page-link" href="{{ url_for('admin_history', page=history_data.prev_num) }}">Previous</a>
+                                                <a class="page-link" href="{{ url_for('admin_history', page=history_data.prev_num, slide=0) }}">Previous</a>
                                             </li>
                                             {% endif %}
                                             {% for page_num in range(1, history_data.total_pages + 1) %}
@@ -253,7 +253,7 @@
                                                 </li>
                                                 {% elif page_num <= 3 or page_num > history_data.total_pages - 3 or (page_num >= history_data.page - 1 and page_num <= history_data.page + 1) %}
                                                 <li class="page-item">
-                                                    <a class="page-link" href="{{ url_for('admin_history', page=page_num) }}">{{ page_num }}</a>
+                                                    <a class="page-link" href="{{ url_for('admin_history', page=page_num, slide=0) }}">{{ page_num }}</a>
                                                 </li>
                                                 {% elif page_num == 4 and history_data.page > 5 %}
                                                 <li class="page-item disabled">
@@ -267,7 +267,7 @@
                                             {% endfor %}
                                             {% if history_data.has_next %}
                                             <li class="page-item">
-                                                <a class="page-link" href="{{ url_for('admin_history', page=history_data.next_num) }}">Next</a>
+                                                <a class="page-link" href="{{ url_for('admin_history', page=history_data.next_num, slide=0) }}">Next</a>
                                             </li>
                                             {% endif %}
                                         </ul>
@@ -279,7 +279,7 @@
                     </div>
                     
                     <!-- Slide 2: Classifications for Another Person -->
-                    <div class="carousel-item">
+                    <div class="carousel-item {% if active_slide == 1 %}active{% endif %}">
                         <div class="card shadow mb-4">
                             <div class="card-header py-3 d-flex justify-content-between align-items-center">
                                 <h6 class="m-0 font-weight-bold text-primary">Classifications for Another Person</h6>
@@ -370,19 +370,19 @@
                                   <ul class="pagination pagination-sm mb-0">
                                     {% if other_person_data.has_prev %}
                                     <li class="page-item">
-                                      <a class="page-link" href="{{ url_for('admin_history', page=history_data.page, op_page=other_person_data.prev_num) }}">Previous</a>
+                                      <a class="page-link" href="{{ url_for('admin_history', page=history_data.page, op_page=other_person_data.prev_num, slide=1) }}">Previous</a>
                                     </li>
                                     {% endif %}
                                     {% for page_num in range(1, other_person_data.total_pages + 1) %}
                                       {% if page_num == other_person_data.page %}
                                       <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
                                       {% else %}
-                                      <li class="page-item"><a class="page-link" href="{{ url_for('admin_history', page=history_data.page, op_page=page_num) }}">{{ page_num }}</a></li>
+                                      <li class="page-item"><a class="page-link" href="{{ url_for('admin_history', page=history_data.page, op_page=page_num, slide=1) }}">{{ page_num }}</a></li>
                                       {% endif %}
                                     {% endfor %}
                                     {% if other_person_data.has_next %}
                                     <li class="page-item">
-                                      <a class="page-link" href="{{ url_for('admin_history', page=history_data.page, op_page=other_person_data.next_num) }}">Next</a>
+                                      <a class="page-link" href="{{ url_for('admin_history', page=history_data.page, op_page=other_person_data.next_num, slide=1) }}">Next</a>
                                     </li>
                                     {% endif %}
                                   </ul>
@@ -1055,6 +1055,24 @@ function sendResultEmail(recordId) {
 
 // Initialize DataTable and populate filters
 $(document).ready(function() {
+    // Ensure carousel is on the correct slide based on URL parameter
+    var carousel = document.getElementById('classTablesCarousel');
+    if (carousel) {
+        var urlParams = new URLSearchParams(window.location.search);
+        var slideParam = urlParams.get('slide');
+        if (slideParam === '1') {
+            // Switch to slide 1 (Another Person) if URL parameter indicates it
+            var carouselInstance = bootstrap.Carousel.getInstance(carousel);
+            if (carouselInstance) {
+                carouselInstance.to(1);
+            } else {
+                // If carousel not initialized yet, initialize and go to slide 1
+                var newCarousel = new bootstrap.Carousel(carousel);
+                newCarousel.to(1);
+            }
+        }
+    }
+    
     // Initialize DataTable with minimal configuration
     $('#historyTable').DataTable({
         "pageLength": 25,
