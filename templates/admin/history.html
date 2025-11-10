@@ -318,31 +318,12 @@
                                     {% set _gender = rec.patient_gender if rec.patient_gender is defined and rec.patient_gender is not none else '-' %}
                                     {% set tooltip = None %}
                                     {% if rec.notes and rec.notes.startswith('Patient:') %}
-                                      {% set patient_part = rec.notes.split('Patient:')[1] %}
-                                      {% if '|' in patient_part %}
-                                        {% set _patient = (patient_part.split('|') | first) | trim %}
-                                      {% else %}
-                                        {% set _patient = (patient_part.split('.') | first) | trim %}
-                                      {% endif %}
+                                      {% set _patient = (rec.notes.split('Patient:')[1].split('.') | first) | trim %}
                                       {% if _age == '-' %}
-                                        {% if 'Age:' in rec.notes %}
-                                          {% set age_temp = rec.notes.split('Age:')[1] %}
-                                          {% if '|' in age_temp %}
-                                            {% set _age = age_temp.split('|')[0]|trim %}
-                                          {% else %}
-                                            {% set _age = age_temp.split('.')[0]|trim %}
-                                          {% endif %}
-                                        {% endif %}
+                                        {% set _age = rec.notes.split('Age:')[1].split('.')|first if 'Age:' in rec.notes else '-' %}
                                       {% endif %}
                                       {% if _gender == '-' %}
-                                        {% if 'Gender:' in rec.notes %}
-                                          {% set gender_temp = rec.notes.split('Gender:')[1] %}
-                                          {% if '|' in gender_temp %}
-                                            {% set _gender = gender_temp.split('|')[0]|trim %}
-                                          {% else %}
-                                            {% set _gender = gender_temp.split('.')[0]|trim %}
-                                          {% endif %}
-                                        {% endif %}
+                                        {% set _gender = rec.notes.split('Gender:')[1].split('.')|first if 'Gender:' in rec.notes else '-' %}
                                       {% endif %}
                                       {% set tooltip = 'Full Name: ' ~ _patient ~ '\nAge: ' ~ _age ~ '\nGender: ' ~ _gender %}
                                     {% endif %}
@@ -541,32 +522,13 @@ function updateOtherPersonTable(records) {
         var gender = rec.patient_gender || '-';
         if ((!patient || patient === '-') && rec.notes && rec.notes.startsWith('Patient:')) {
             try {
-                var patientPart = rec.notes.split('Patient:')[1];
-                if (patientPart.indexOf('|') !== -1) {
-                    patient = patientPart.split('|')[0].trim();
-                } else {
-                    patient = patientPart.split('.')[0].trim();
-                }
+                patient = rec.notes.split('Patient:')[1].split('.')[0].trim();
             } catch(_) {}
             try {
-                if (rec.notes.includes('Age:')) {
-                    var agePart = rec.notes.split('Age:')[1];
-                    if (agePart.indexOf('|') !== -1) {
-                        age = agePart.split('|')[0].trim();
-                    } else {
-                        age = agePart.split('.')[0].trim();
-                    }
-                }
+                age = rec.notes.includes('Age:') ? rec.notes.split('Age:')[1].split('.')[0].trim() : age;
             } catch(_) {}
             try {
-                if (rec.notes.includes('Gender:')) {
-                    var genderPart = rec.notes.split('Gender:')[1];
-                    if (genderPart.indexOf('|') !== -1) {
-                        gender = genderPart.split('|')[0].trim();
-                    } else {
-                        gender = genderPart.split('.')[0].trim();
-                    }
-                }
+                gender = rec.notes.includes('Gender:') ? rec.notes.split('Gender:')[1].split('.')[0].trim() : gender;
             } catch(_) {}
         }
         html += `
@@ -788,18 +750,15 @@ function displayRecordDetails(data) {
     let patientGender = record.patient_gender || null;
     let cleanedNotes = (record.notes || '').trim();
     if ((!patientName && !patientAge && !patientGender) && cleanedNotes.startsWith('Patient:')) {
-        // Helper to extract value after label up to next '|' (new format), '.' or ',' (legacy)
+        // Helper to extract value after label up to next '.' or ','
         const extractAfter = (label, text) => {
             const idx = text.indexOf(label);
             if (idx === -1) return [null, text];
             const sub = text.slice(idx + label.length);
-            // Try pipe delimiter first (new format), then period/comma (legacy)
-            const pipe = sub.indexOf('|');
             const dot = sub.indexOf('.');
             const comma = sub.indexOf(',');
             let end = -1;
-            if (pipe !== -1) end = pipe;
-            else if (dot === -1 && comma === -1) end = -1;
+            if (dot === -1 && comma === -1) end = -1;
             else if (dot === -1) end = comma;
             else if (comma === -1) end = dot;
             else end = Math.min(dot, comma);

@@ -83,32 +83,9 @@
                             <td>{{ "%.2f"|format(record.confidence * 100) }}%</td>
                             <td>
                                 {% if record.notes and record.notes.startswith('Patient:') %}
-                                    {% set patient_part = record.notes.split('Patient:')[1] %}
-                                    {% if '|' in patient_part %}
-                                        {% set legacy_name = (patient_part.split('|') | first) | trim %}
-                                    {% else %}
-                                        {% set legacy_name = (patient_part.split('.') | first) | trim %}
-                                    {% endif %}
-                                    {% if 'Age:' in record.notes %}
-                                        {% set age_temp = record.notes.split('Age:')[1] %}
-                                        {% if '|' in age_temp %}
-                                            {% set age_part = age_temp.split('|')[0]|trim %}
-                                        {% else %}
-                                            {% set age_part = age_temp.split('.')[0]|trim %}
-                                        {% endif %}
-                                    {% else %}
-                                        {% set age_part = '-' %}
-                                    {% endif %}
-                                    {% if 'Gender:' in record.notes %}
-                                        {% set gender_temp = record.notes.split('Gender:')[1] %}
-                                        {% if '|' in gender_temp %}
-                                            {% set gender_part = gender_temp.split('|')[0]|trim %}
-                                        {% else %}
-                                            {% set gender_part = gender_temp.split('.')[0]|trim %}
-                                        {% endif %}
-                                    {% else %}
-                                        {% set gender_part = '-' %}
-                                    {% endif %}
+                                    {% set legacy_name = (record.notes.split('Patient:')[1].split('.') | first) | trim %}
+                                    {% set age_part = record.notes.split('Age:')[1].split('.')|first if 'Age:' in record.notes else '-' %}
+                                    {% set gender_part = record.notes.split('Gender:')[1].split('.')|first if 'Gender:' in record.notes else '-' %}
                                     {% set tooltip_html = 'Full Name: ' ~ legacy_name ~ '<br>Age: ' ~ age_part ~ '<br>Gender: ' ~ gender_part %}
                                     <button type="button" class="btn btn-sm btn-outline-secondary" 
                                         data-bs-toggle="tooltip" data-bs-html="true" title="{{ tooltip_html | safe }}">
