@@ -587,10 +587,18 @@ def add_classification_record(*args, **kwargs):
             'neutrophils', 'lymphocytes', 'monocytes', 'eosinophils', 'basophil', 'immature_granulocytes'
         ]
         # Use 0.8 for immature_granulocytes if not provided (matches training data median)
+        # But explicitly preserve 0.0 values when provided
         values = []
         for f in fields:
             if f == 'immature_granulocytes':
-                values.append(kwargs.get(f, 0.8))
+                # Check if value is explicitly provided (including 0.0)
+                # Use 'in' check to distinguish between not provided vs provided as 0.0
+                if f in kwargs:
+                    # Value was explicitly provided (could be 0.0, 0.8, or any other value)
+                    values.append(float(kwargs[f]))
+                else:
+                    # Value was not provided, use default
+                    values.append(0.8)
             else:
                 values.append(kwargs.get(f, 0.0))
         predicted_class = kwargs.get('predicted_class')
