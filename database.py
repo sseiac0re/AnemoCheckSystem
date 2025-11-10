@@ -1972,4 +1972,16 @@ def _ensure_patient_columns(cursor):
         except Exception:
             pass
 
+def ensure_patient_columns():
+    """Ensure patient_name, patient_age, patient_gender columns exist on classification_history.
+    Safe to call repeatedly at startup on Railway or local.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        _ensure_patient_columns(cursor)
+        conn.commit()
+    finally:
+        conn.close()
+
 
