@@ -88,8 +88,12 @@
                                     {% set show_patient = legacy_name %}
                                 {% endif %}
                                 {% if show_patient %}
+                                    {% set _name = record.patient_name or legacy_name or '-' %}
+                                    {% set _age = record.patient_age if record.patient_age is not none else '-' %}
+                                    {% set _gender = (record.patient_gender|capitalize) if record.patient_gender else '-' %}
+                                    {% set _tooltip = 'Full Name: ' ~ _name ~ '<br>Age: ' ~ _age ~ '<br>Gender: ' ~ _gender %}
                                     <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                        data-bs-toggle="tooltip" title="{{ (record.patient_name or legacy_name or '') ~ (', ' if (record.patient_name or legacy_name) and (record.patient_age or record.patient_gender) else '') ~ (record.patient_age|string if record.patient_age else '') ~ (', ' if record.patient_age and record.patient_gender else '') ~ (record.patient_gender|capitalize if record.patient_gender else '') }}">
+                                        data-bs-toggle="tooltip" data-bs-html="true" title="{{ _tooltip | safe }}">
                                         <i class="fas fa-user"></i>
                                     </button>
                                 {% else %}
@@ -306,7 +310,7 @@ function sendResultEmail(recordId) {
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Bootstrap tooltips (if any)
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(t => new bootstrap.Tooltip(t));
+    tooltipTriggerList.map(t => new bootstrap.Tooltip(t, { html: true }));
 
     // Read JSON safely from the DOM (avoids inlining Jinja tokens in JS)
     let recordsData = [];
