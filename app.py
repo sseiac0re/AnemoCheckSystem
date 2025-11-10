@@ -813,21 +813,24 @@ def xgbclasify():
         immature_granulocytes = 0.8  # Default when field is left empty
     else:
         immature_granulocytes = float(immature_granulocytes_input)  # Use actual value (including 0)
-    notes = request.form.get("notes")  # Corrected from "mcv" to "notes"
+    notes = request.form.get("notes")  # Only user's notes
 
     # Check if classifying for another person
     classify_other_person = request.form.get("classify_other_person") == "on"
-    
+
     patient_name = None
     patient_age = None
     patient_gender_text = None
-    
+
+    # Read potential fields early and fallback to detect toggle if needed
+    other_person_age = request.form.get("other_person_age")
+    other_person_gender = request.form.get("other_person_gender")
+    other_person_name = request.form.get("other_person_name", "").strip()
+    if not classify_other_person and (other_person_age or other_person_gender or other_person_name):
+        classify_other_person = True
+
     if classify_other_person:
         # Use alternative person's information
-        other_person_age = request.form.get("other_person_age")
-        other_person_gender = request.form.get("other_person_gender")
-        other_person_name = request.form.get("other_person_name", "").strip()
-        
         if not other_person_age or not other_person_gender:
             flash("Age and gender are required when classifying for another person.", "error")
             return redirect(url_for('dashboard'))
@@ -838,10 +841,6 @@ def xgbclasify():
         patient_name = other_person_name or None
         patient_age = age
         patient_gender_text = other_person_gender.lower()
-        # Add person's name to notes if provided
-        if other_person_name:
-            patient_info = f"Patient: {other_person_name}. "
-            notes = patient_info + (notes if notes else "")
     else:
         # Use logged-in user's information (default behavior)
         birth_date_str = current_user.date_of_birth
