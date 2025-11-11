@@ -149,6 +149,12 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
 
             <div class="modal-body">
+                <style>
+                /* Match dashboard error styling */
+                .custom-error { background-color: #dc3545; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 14px; margin-top: 6px; display: none; }
+                .form-control.error { border-color: #dc3545; box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25); }
+                .form-control.success { border-color: #28a745; box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25); }
+                </style>
                 <form id="homeCbcForm" action="{{ url_for('xgb_try_clasify') }}" method="post" novalidate>
                     {{ form.hidden_tag() }}
                     <div class="row">
@@ -172,10 +178,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                             <option value="male">Male</option>
                                             <option value="female">Female</option>
                                         </select>
-                                        <div class="invalid-feedback">Gender is required.</div>
+                                        <div class="custom-error" id="gender-error">Gender is required.</div>
                                     {% else %}
                                         <input class="form-control" id="{{ id }}" name="{{ name }}" type="number" step="any" required placeholder="{{ placeholder }}" autocomplete="off">
-                                        <div class="invalid-feedback">{{ label.split('(')[0].strip() }} is required.</div>
+                                        <div class="custom-error" id="{{ id }}-error">{{ label.split('(')[0].strip() }} is required.</div>
                                     {% endif %}
                                 </div>
                             {% endfor %}
@@ -200,7 +206,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         <div class="form-text">If left blank, a default of 0.8 will be used.</div>
                                     {% else %}
                                         <input class="form-control" id="{{ id }}" name="{{ name }}" type="number" step="any" required placeholder="{{ placeholder }}" autocomplete="off">
-                                        <div class="invalid-feedback">{{ label.split('(')[0].strip() }} is required.</div>
+                                        <div class="custom-error" id="{{ id }}-error">{{ label.split('(')[0].strip() }} is required.</div>
                                     {% endif %}
                                 </div>
                             {% endfor %}
@@ -218,43 +224,58 @@ document.addEventListener("DOMContentLoaded", function () {
 </div>
 {% endif %}
 <script>
-// Basic client-side validation similar to dashboard behavior
+// Client-side validation styled like dashboard
 (function() {
     const form = document.getElementById('homeCbcForm');
     if (!form) return;
     const modalEl = document.getElementById('cbcModal');
-    const requiredIds = [
-        'wbc','rbc','hemoglobin','hematocrit','mcv','mch',
-        'mchc','plt','neutrophils','lymphocytes','monocytes','eosinophils','basophil','gender'
-    ];
-    function setInvalid(el, msg) {
-        el.classList.add('is-invalid');
-        const fb = el.parentElement.querySelector('.invalid-feedback');
-        if (fb && msg) fb.textContent = msg;
+    const requiredIds = ['wbc','rbc','hemoglobin','hematocrit','mcv','mch','mchc','plt','neutrophils','lymphocytes','monocytes','eosinophils','basophil','gender'];
+    const numberIds = ['wbc','rbc','hemoglobin','hematocrit','mcv','mch','mchc','neutrophils','lymphocytes','monocytes','eosinophils','basophil'];
+    function isNumber(val){ return val !== '' && !isNaN(val); }
+    function markSuccess(id){
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('error');
+        el.classList.add('success');
+        setTimeout(()=>{ el.classList.remove('success'); }, 2000);
     }
-    function clearInvalid(el) {
-        el.classList.remove('is-invalid');
+    function showError(id, msg){
+        const el = document.getElementById(id);
+        const err = document.getElementById(id + '-error');
+        if (el && err){
+            err.textContent = msg;
+            err.style.display = 'block';
+            el.classList.add('error');
+            el.classList.remove('success');
+        }
+    }
+    function hideError(id){
+        const el = document.getElementById(id);
+        const err = document.getElementById(id + '-error');
+        if (el && err){
+            err.style.display = 'none';
+            el.classList.remove('error');
+        }
     }
     form.addEventListener('submit', function(e) {
         let valid = true;
-        requiredIds.forEach(function(id) {
+        requiredIds.forEach(function(id){
             const el = document.getElementById(id);
             if (!el) return;
             const val = (el.value || '').toString().trim();
-            if (!val) {
+            if (!val){
+                const labelMap = {wbc:'WBC',rbc:'RBC',hemoglobin:'HEMOGLOBIN',hematocrit:'HEMATOCRIT',mcv:'MCV',mch:'MCH',mchc:'MCHC',plt:'PLATELET',neutrophils:'NEUTROPHILS',lymphocytes:'LYMPHOCYTES',monocytes:'MONOCYTES',eosinophils:'EUSONIPHILS',basophil:'BASOPHIL',gender:'Gender'};
+                showError(id, (labelMap[id] || 'Field') + ' is required.');
                 valid = false;
-                const labelMap = {
-                    'wbc':'WBC','rbc':'RBC','hemoglobin':'HEMOGLOBIN',
-                    'hematocrit':'HEMATOCRIT','mcv':'MCV','mch':'MCH','mchc':'MCHC',
-                    'plt':'PLATELET','neutrophils':'NEUTROPHILS','lymphocytes':'LYMPHOCYTES',
-                    'monocytes':'MONOCYTES','eosinophils':'EUSONIPHILS','basophil':'BASOPHIL',
-                    'gender':'Gender'
-                };
-                const msg = (labelMap[id] || 'Field') + ' is required.';
-                setInvalid(el, msg);
-            } else {
-                clearInvalid(el);
+                return;
             }
+            if (numberIds.includes(id) && !isNumber(val)){
+                showError(id, 'Please enter a valid number.');
+                valid = false;
+                return;
+            }
+            hideError(id);
+            markSuccess(id);
         });
         // Default immature granulocytes to 0.8 if empty
         const ig = document.getElementById('immature_granulocytes');
@@ -265,24 +286,31 @@ document.addEventListener("DOMContentLoaded", function () {
             e.preventDefault();
             e.stopPropagation();
             // Scroll to first invalid
-            const firstInvalid = form.querySelector('.is-invalid');
+            const firstInvalid = form.querySelector('.error');
             if (firstInvalid && firstInvalid.scrollIntoView) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     });
     // Clear error on input
-    requiredIds.forEach(function(id) {
+    requiredIds.forEach(function(id){
         const el = document.getElementById(id);
         if (!el) return;
-        el.addEventListener('input', function() { clearInvalid(el); });
-        el.addEventListener('change', function() { clearInvalid(el); });
+        el.addEventListener('input', function(){
+            hideError(id);
+            if (numberIds.includes(id) && isNumber(el.value.trim())) { markSuccess(id); }
+        });
+        el.addEventListener('change', function(){ hideError(id); });
     });
 
     // Reset the form each time the modal is opened or closed so visitors always start fresh
     function resetVisitorForm() {
         form.reset();
         // Remove any is-invalid classes
-        const invalids = form.querySelectorAll('.is-invalid');
-        invalids.forEach(function(el) { el.classList.remove('is-invalid'); });
+        const invalids = form.querySelectorAll('.error, .success, .custom-error');
+        invalids.forEach(function(el) {
+            el.classList.remove('error');
+            el.classList.remove('success');
+            if (el.classList.contains('custom-error')) el.style.display = 'none';
+        });
         // Clear any custom IG default we might have set previously
         const ig = document.getElementById('immature_granulocytes');
         if (ig) ig.value = '';
