@@ -149,7 +149,7 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
 
             <div class="modal-body">
-                <form action="{{ url_for('xgb_try_clasify') }}" method="post">
+                <form id="homeCbcForm" action="{{ url_for('xgb_try_clasify') }}" method="post" novalidate>
                     {{ form.hidden_tag() }}
                     <div class="row">
                         <!-- Left Column -->
@@ -172,8 +172,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                             <option value="male">Male</option>
                                             <option value="female">Female</option>
                                         </select>
+                                        <div class="invalid-feedback">Gender is required.</div>
                                     {% else %}
                                         <input class="form-control" id="{{ id }}" name="{{ name }}" type="number" step="any" required placeholder="{{ placeholder }}" autocomplete="off">
+                                        <div class="invalid-feedback">{{ label.split('(')[0].strip() }} is required.</div>
                                     {% endif %}
                                 </div>
                             {% endfor %}
@@ -189,11 +191,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                 ('Monocytes (%)', 'monocytes', 'MONOCYTES', 'Enter Monocytes'),
                                 ('Eosinophils (%)', 'eosinophils', 'EUSONIPHILS', 'Enter Eosinophils'),
                                 ('Basophils (%)', 'basophil', 'BASOPHIL', 'Enter Basophils'),
-                                ('Immature Granulocytes (%)', 'immature_granulocytes', 'IMMATURE_GRANYTES', 'Enter Immature Granulocytes')
+                                ('Immature Granulocytes (%)', 'immature_granulocytes', 'IMMATURE_GRANYTES', 'Enter Immature Granulocytes (optional)')
                             ] %}
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold" for="{{ id }}">{{ label }}</label>
-                                    <input class="form-control" id="{{ id }}" name="{{ name }}" type="number" step="any" required placeholder="{{ placeholder }}" autocomplete="off">
+                                    {% if id == 'immature_granulocytes' %}
+                                        <input class="form-control" id="{{ id }}" name="{{ name }}" type="number" step="any" placeholder="{{ placeholder }}" autocomplete="off">
+                                        <div class="form-text">If left blank, a default of 0.8 will be used.</div>
+                                    {% else %}
+                                        <input class="form-control" id="{{ id }}" name="{{ name }}" type="number" step="any" required placeholder="{{ placeholder }}" autocomplete="off">
+                                        <div class="invalid-feedback">{{ label.split('(')[0].strip() }} is required.</div>
+                                    {% endif %}
                                 </div>
                             {% endfor %}
                         </div>
@@ -209,6 +217,66 @@ document.addEventListener("DOMContentLoaded", function () {
     </div>
 </div>
 {% endif %}
+<script>
+// Basic client-side validation similar to dashboard behavior
+(function() {
+    const form = document.getElementById('homeCbcForm');
+    if (!form) return;
+    const requiredIds = [
+        'wbc','rbc','hemoglobin','hematocrit','mcv','mch',
+        'mchc','plt','neutrophils','lymphocytes','monocytes','eosinophils','basophil','gender'
+    ];
+    function setInvalid(el, msg) {
+        el.classList.add('is-invalid');
+        const fb = el.parentElement.querySelector('.invalid-feedback');
+        if (fb && msg) fb.textContent = msg;
+    }
+    function clearInvalid(el) {
+        el.classList.remove('is-invalid');
+    }
+    form.addEventListener('submit', function(e) {
+        let valid = true;
+        requiredIds.forEach(function(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const val = (el.value || '').toString().trim();
+            if (!val) {
+                valid = false;
+                const labelMap = {
+                    'wbc':'WBC','rbc':'RBC','hemoglobin':'HEMOGLOBIN',
+                    'hematocrit':'HEMATOCRIT','mcv':'MCV','mch':'MCH','mchc':'MCHC',
+                    'plt':'PLATELET','neutrophils':'NEUTROPHILS','lymphocytes':'LYMPHOCYTES',
+                    'monocytes':'MONOCYTES','eosinophils':'EUSONIPHILS','basophil':'BASOPHIL',
+                    'gender':'Gender'
+                };
+                const msg = (labelMap[id] || 'Field') + ' is required.';
+                setInvalid(el, msg);
+            } else {
+                clearInvalid(el);
+            }
+        });
+        // Default immature granulocytes to 0.8 if empty
+        const ig = document.getElementById('immature_granulocytes');
+        if (ig && (ig.value === null || ig.value === undefined || ig.value.toString().trim() === '')) {
+            ig.value = '0.8';
+        }
+        if (!valid) {
+            e.preventDefault();
+            e.stopPropagation();
+            // Scroll to first invalid
+            const firstInvalid = form.querySelector('.is-invalid');
+            if (firstInvalid && firstInvalid.scrollIntoView) firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+    // Clear error on input
+    requiredIds.forEach(function(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', function() { clearInvalid(el); });
+        el.addEventListener('change', function() { clearInvalid(el); });
+    });
+})();
+</script>
 
 <!-- 💎 Features Section -->
 <div class="row text-center mb-5">
