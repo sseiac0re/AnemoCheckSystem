@@ -222,6 +222,7 @@ document.addEventListener("DOMContentLoaded", function () {
 (function() {
     const form = document.getElementById('homeCbcForm');
     if (!form) return;
+    const modalEl = document.getElementById('cbcModal');
     const requiredIds = [
         'wbc','rbc','hemoglobin','hematocrit','mcv','mch',
         'mchc','plt','neutrophils','lymphocytes','monocytes','eosinophils','basophil','gender'
@@ -275,6 +276,21 @@ document.addEventListener("DOMContentLoaded", function () {
         el.addEventListener('input', function() { clearInvalid(el); });
         el.addEventListener('change', function() { clearInvalid(el); });
     });
+
+    // Reset the form each time the modal is opened or closed so visitors always start fresh
+    function resetVisitorForm() {
+        form.reset();
+        // Remove any is-invalid classes
+        const invalids = form.querySelectorAll('.is-invalid');
+        invalids.forEach(function(el) { el.classList.remove('is-invalid'); });
+        // Clear any custom IG default we might have set previously
+        const ig = document.getElementById('immature_granulocytes');
+        if (ig) ig.value = '';
+    }
+    if (modalEl) {
+        modalEl.addEventListener('show.bs.modal', resetVisitorForm);
+        modalEl.addEventListener('hidden.bs.modal', resetVisitorForm);
+    }
 })();
 </script>
 

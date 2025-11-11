@@ -1220,7 +1220,7 @@ def xgb_try_clasify():
         'confidence': confidence_scores,
         'recommendation': final_recommendation,
         'definition': cbc_results_summary[predicted_label],
-        'created_at': get_philippines_time_for_db(),
+        'created_at': format_philippines_time_ampm(get_philippines_time_for_db()),
     }
 
     
