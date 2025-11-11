@@ -123,10 +123,12 @@ document.addEventListener("DOMContentLoaded", function () {
             — all through a secure, intelligent platform designed for better wellness.
         </p>
 
-        <!-- CTA Button - take user to Dashboard form experience -->
-        <a class="btn btn-primary btn-lg mt-3" href="{{ url_for('dashboard') }}">
+        {% if not current_user.is_authenticated %}
+        <!-- CTA Button to Open Modal -->
+        <button class="btn btn-primary btn-lg mt-3" data-bs-toggle="modal" data-bs-target="#cbcModal">
             Check your Status!
-        </a>
+        </button>
+        {% endif %}
     </div>
 
     <div class="hero-img mt-4 mt-md-0">
@@ -135,7 +137,78 @@ document.addEventListener("DOMContentLoaded", function () {
     </div>
 </div>
 
-{# Removed the inline modal; users will be taken to the dashboard form which already has full validation and UX #}
+{% if not current_user.is_authenticated %}
+<!-- 🧪 Modal for CBC Input -->
+<div class="modal fade" id="cbcModal" tabindex="-1" aria-labelledby="cbcModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content shadow-lg">
+            <!-- 🔴 Red Header -->
+            <div class="modal-header" style="background-color: #c62828; color: white;">
+                <h5 class="modal-title fw-bold" id="cbcModalLabel">Anemia Detection</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <form action="{{ url_for('xgb_try_clasify') }}" method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="row">
+                        <!-- Left Column -->
+                        <div class="col-md-6">
+                            {% for label, id, name, placeholder in [
+                                ('Age', 'age', 'age', 'Enter Age'),
+                                ('Gender', 'gender', 'gender', 'Select Gender'),
+                                ('White Blood Cell Count (WBC) (10³/µL)', 'wbc', 'WBC', 'Enter WBC'),
+                                ('Red Blood Cell Count (RBC) (million/µL)', 'rbc', 'RBC', 'Enter RBC'),
+                                ('Hemoglobin (g/dL)', 'hemoglobin', 'HEMOGLOBIN', 'Enter Hemoglobin'),
+                                ('Hematocrit (%)', 'hematocrit', 'HEMATOCRIT', 'Enter Hematocrit'),
+                                ('Mean Corpuscular Volume (MCV) (fL)', 'mcv', 'MCV', 'Enter MCV'),
+                                ('Mean Corpuscular Hemoglobin (MCH) (pg)', 'mch', 'MCH', 'Enter MCH')
+                            ] %}
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold" for="{{ id }}">{{ label }}</label>
+                                    {% if id == 'gender' %}
+                                        <select class="form-control" id="gender" name="gender" required>
+                                            <option value="" disabled selected>{{ placeholder }}</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                        </select>
+                                    {% else %}
+                                        <input class="form-control" id="{{ id }}" name="{{ name }}" type="number" step="any" required placeholder="{{ placeholder }}" autocomplete="off">
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Right Column -->
+                        <div class="col-md-6">
+                            {% for label, id, name, placeholder in [
+                                ('MCHC (g/dL)', 'mchc', 'MCHC', 'Enter MCHC'),
+                                ('Platelet Count (10³/µL)', 'plt', 'PLATELET', 'Enter Platelet Count'),
+                                ('Neutrophils (%)', 'neutrophils', 'NEUTROPHILS', 'Enter Neutrophils'),
+                                ('Lymphocytes (%)', 'lymphocytes', 'LYMPHOCYTES', 'Enter Lymphocytes'),
+                                ('Monocytes (%)', 'monocytes', 'MONOCYTES', 'Enter Monocytes'),
+                                ('Eosinophils (%)', 'eosinophils', 'EUSONIPHILS', 'Enter Eosinophils'),
+                                ('Basophils (%)', 'basophil', 'BASOPHIL', 'Enter Basophils'),
+                                ('Immature Granulocytes (%)', 'immature_granulocytes', 'IMMATURE_GRANYTES', 'Enter Immature Granulocytes')
+                            ] %}
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold" for="{{ id }}">{{ label }}</label>
+                                    <input class="form-control" id="{{ id }}" name="{{ name }}" type="number" step="any" required placeholder="{{ placeholder }}" autocomplete="off">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="modal-footer mt-3">
+                        <button type="submit" name="submit" class="btn btn-danger px-4">Submit</button>
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- 💎 Features Section -->
 <div class="row text-center mb-5">
