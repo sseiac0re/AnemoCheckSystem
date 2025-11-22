@@ -587,6 +587,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const consentCancelBtn = document.getElementById('consentCancelBtn');
     let formValidated = false;
     let formSubmissionEvent = null;
+    let consentGiven = false;
 
     // Enable/disable agree button based on checkbox
     if (consentCheckbox) {
@@ -601,16 +602,24 @@ document.addEventListener('DOMContentLoaded', function() {
     if (consentAgreeBtn) {
         consentAgreeBtn.addEventListener('click', function() {
             if (consentCheckbox && consentCheckbox.checked) {
-                // Hide modal
+                // Hide modal first
                 const modalInstance = bootstrap.Modal.getInstance(consentModal);
                 if (modalInstance) {
                     modalInstance.hide();
                 }
-                // Submit the form
-                if (formValidated && form) {
-                    form.removeEventListener('submit', preventSubmitHandler);
-                    form.submit();
-                }
+                
+                // Submit the form after a short delay to ensure modal is hidden
+                // form.submit() bypasses the submit event and submits directly to server
+                // which will process registration and redirect to OTP verification
+                setTimeout(function() {
+                    if (formValidated && form) {
+                        // Remove the submit event listener to prevent modal from showing again
+                        form.removeEventListener('submit', preventSubmitHandler);
+                        // Submit form directly - this will POST to /register route
+                        // Server will process registration and redirect to /verify-registration
+                        form.submit();
+                    }
+                }, 100);
             }
         });
     }
@@ -653,11 +662,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             formValidated = false;
             formSubmissionEvent = null;
+            consentGiven = false; // Reset consent flag
         });
     }
 
     // Prevent default form submission handler
     function preventSubmitHandler(e) {
+        // If consent was already given, allow form to submit normally
+        if (consentGiven) {
+            consentGiven = false; // Reset for next time
+            return; // Allow default submission
+        }
+        
         e.preventDefault();
         formSubmissionEvent = e;
         
