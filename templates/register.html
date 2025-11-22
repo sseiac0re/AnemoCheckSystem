@@ -51,6 +51,7 @@
                     
                     <form method="post" action="{{ url_for('register') }}" id="registerForm" novalidate>
                         {{ form.hidden_tag() }}
+                        <input type="hidden" name="consent_given" id="consentGiven" value="0">
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -602,6 +603,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (consentAgreeBtn) {
         consentAgreeBtn.addEventListener('click', function() {
             if (consentCheckbox && consentCheckbox.checked) {
+                // Set consent flag in hidden input
+                const consentInput = document.getElementById('consentGiven');
+                if (consentInput) {
+                    consentInput.value = '1';
+                }
+                
+                // Set consent flag
+                consentGiven = true;
+                
                 // Hide modal first
                 const modalInstance = bootstrap.Modal.getInstance(consentModal);
                 if (modalInstance) {
@@ -609,17 +619,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Submit the form after a short delay to ensure modal is hidden
-                // form.submit() bypasses the submit event and submits directly to server
-                // which will process registration and redirect to OTP verification
                 setTimeout(function() {
                     if (formValidated && form) {
-                        // Remove the submit event listener to prevent modal from showing again
-                        form.removeEventListener('submit', preventSubmitHandler);
-                        // Submit form directly - this will POST to /register route
-                        // Server will process registration and redirect to /verify-registration
-                        form.submit();
+                        // Find the submit button and click it to trigger normal form submission
+                        const submitButton = form.querySelector('button[type="submit"]');
+                        if (submitButton) {
+                            submitButton.click();
+                        } else {
+                            // Fallback: use requestSubmit which triggers validation and submit event
+                            form.requestSubmit();
+                        }
                     }
-                }, 100);
+                }, 150);
             }
         });
     }
@@ -634,6 +645,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (consentAgreeBtn) {
                 consentAgreeBtn.disabled = true;
             }
+            // Reset consent flag
+            consentGiven = false;
+            const consentInput = document.getElementById('consentGiven');
+            if (consentInput) {
+                consentInput.value = '0';
+            }
         });
     }
 
@@ -647,6 +664,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (consentAgreeBtn) {
                 consentAgreeBtn.disabled = true;
+            }
+            // Reset consent flag
+            consentGiven = false;
+            const consentInput = document.getElementById('consentGiven');
+            if (consentInput) {
+                consentInput.value = '0';
             }
         });
     }
@@ -663,15 +686,26 @@ document.addEventListener('DOMContentLoaded', function() {
             formValidated = false;
             formSubmissionEvent = null;
             consentGiven = false; // Reset consent flag
+            const consentInput = document.getElementById('consentGiven');
+            if (consentInput) {
+                consentInput.value = '0';
+            }
         });
     }
 
     // Prevent default form submission handler
     function preventSubmitHandler(e) {
+        // Check if consent was given (either via flag or hidden input)
+        const consentInput = document.getElementById('consentGiven');
+        const hasConsent = consentGiven || (consentInput && consentInput.value === '1');
+        
         // If consent was already given, allow form to submit normally
-        if (consentGiven) {
+        if (hasConsent) {
             consentGiven = false; // Reset for next time
-            return; // Allow default submission
+            if (consentInput) {
+                consentInput.value = '0'; // Reset hidden input
+            }
+            return; // Allow default submission - form will POST to server and redirect to OTP
         }
         
         e.preventDefault();
