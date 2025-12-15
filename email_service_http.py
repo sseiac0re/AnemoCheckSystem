@@ -176,15 +176,15 @@ def send_result_email_brevo_http(record_id: int, user_email: str, user_name: str
                     <div class="result-box">
                         <h3>Complete Blood Count (CBC) Values</h3>
                         <table class="values-table">
-                            <tr><th>Parameter</th><th>Value</th><th>Unit</th></tr>
-                            <tr><td>White Blood Cell Count (WBC)</td><td>{record_data['wbc']:.2f}</td><td>10³/µL</td></tr>
-                            <tr><td>Red Blood Cell Count (RBC)</td><td>{record_data['rbc']:.2f}</td><td>million/µL</td></tr>
-                            <tr><td>Hemoglobin (HGB)</td><td>{record_data['hgb']:.2f}</td><td>g/dL</td></tr>
-                            <tr><td>Hematocrit (HCT)</td><td>{record_data['hct']:.2f}</td><td>%</td></tr>
-                            <tr><td>Mean Corpuscular Volume (MCV)</td><td>{record_data['mcv']:.2f}</td><td>fL</td></tr>
-                            <tr><td>Mean Corpuscular Hemoglobin (MCH)</td><td>{record_data['mch']:.2f}</td><td>pg</td></tr>
-                            <tr><td>Mean Corpuscular Hemoglobin Concentration (MCHC)</td><td>{record_data['mchc']:.2f}</td><td>g/dL</td></tr>
-                            <tr><td>Platelet Count (PLT)</td><td>{record_data['plt']:.2f}</td><td>10³/µL</td></tr>
+                            <tr><th>Parameter</th><th>Value</th><th>Unit</th><th>Normal Range</th></tr>
+                            <tr><td>White Blood Cell Count (WBC)</td><td>{record_data['wbc']:.2f}</td><td>10³/µL</td><td>4.0 - 11.0</td></tr>
+                            <tr><td>Red Blood Cell Count (RBC)</td><td>{record_data['rbc']:.2f}</td><td>million/µL</td><td>4.0 - 5.5</td></tr>
+                            <tr><td>Hemoglobin (HGB)</td><td>{record_data['hgb']:.2f}</td><td>g/dL</td><td>≥ 12.0</td></tr>
+                            <tr><td>Hematocrit (HCT)</td><td>{record_data['hct']:.2f}</td><td>%</td><td>36 - 47</td></tr>
+                            <tr><td>Mean Corpuscular Volume (MCV)</td><td>{record_data['mcv']:.2f}</td><td>fL</td><td>80 - 100</td></tr>
+                            <tr><td>Mean Corpuscular Hemoglobin (MCH)</td><td>{record_data['mch']:.2f}</td><td>pg</td><td>27 - 33</td></tr>
+                            <tr><td>Mean Corpuscular Hemoglobin Concentration (MCHC)</td><td>{record_data['mchc']:.2f}</td><td>g/dL</td><td>32 - 36</td></tr>
+                            <tr><td>Platelet Count (PLT)</td><td>{record_data['plt']:.2f}</td><td>10³/µL</td><td>150 - 450</td></tr>
                         </table>
                     </div>
                     
@@ -217,14 +217,14 @@ def send_result_email_brevo_http(record_id: int, user_email: str, user_name: str
         Confidence: {record_data['confidence']:.2%}
         
         Complete Blood Count (CBC) Values:
-        - White Blood Cell Count (WBC): {record_data['wbc']:.2f} 10³/µL
-        - Red Blood Cell Count (RBC): {record_data['rbc']:.2f} million/µL
-        - Hemoglobin (HGB): {record_data['hgb']:.2f} g/dL
-        - Hematocrit (HCT): {record_data['hct']:.2f} %
-        - Mean Corpuscular Volume (MCV): {record_data['mcv']:.2f} fL
-        - Mean Corpuscular Hemoglobin (MCH): {record_data['mch']:.2f} pg
-        - Mean Corpuscular Hemoglobin Concentration (MCHC): {record_data['mchc']:.2f} g/dL
-        - Platelet Count (PLT): {record_data['plt']:.2f} 10³/µL
+        - White Blood Cell Count (WBC): {record_data['wbc']:.2f} 10³/µL (Normal Range: 4.0 - 11.0)
+        - Red Blood Cell Count (RBC): {record_data['rbc']:.2f} million/µL (Normal Range: 4.0 - 5.5)
+        - Hemoglobin (HGB): {record_data['hgb']:.2f} g/dL (Normal Range: ≥ 12.0)
+        - Hematocrit (HCT): {record_data['hct']:.2f} % (Normal Range: 36 - 47)
+        - Mean Corpuscular Volume (MCV): {record_data['mcv']:.2f} fL (Normal Range: 80 - 100)
+        - Mean Corpuscular Hemoglobin (MCH): {record_data['mch']:.2f} pg (Normal Range: 27 - 33)
+        - Mean Corpuscular Hemoglobin Concentration (MCHC): {record_data['mchc']:.2f} g/dL (Normal Range: 32 - 36)
+        - Platelet Count (PLT): {record_data['plt']:.2f} 10³/µL (Normal Range: 150 - 450)
         
         {f'Notes: {record_data.get("notes", "")}' if record_data.get("notes") else ''}
         
