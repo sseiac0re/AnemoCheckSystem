@@ -65,6 +65,15 @@
     .custom-error { background-color: #dc3545; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 14px; margin-top: 6px; display: none; }
     .form-control.error { border-color: #dc3545; box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25); }
     .form-control.success { border-color: #28a745; box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25); }
+    
+    /* Reference range styling */
+    .reference-range {
+        font-size: 0.85rem;
+        color: #6b7280;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+        display: block;
+    }
 </style>
 {% endblock %}
 
@@ -125,34 +134,36 @@
                     
                     <div class="row">
                         <div class="col-md-6">
-                            {% for label, name, placeholder, input_type in [
-                                ('White Blood Cell Count (WBC) (10³/µL)', 'WBC', 'Enter WBC (10³/µL)', 'number'),
-                                ('Red Blood Cell Count (RBC) (million/µL)', 'RBC', 'Enter RBC (million/µL)', 'number'),
-                                ('Hemoglobin (HEMOGLOBIN) (g/dL)', 'HEMOGLOBIN', 'Enter Hemoglobin (g/dL)', 'number'),
-                                ('Hematocrit (HEMATOCRIT) (%)', 'HEMATOCRIT', 'Enter Hematocrit (%)', 'number'),
-                                ('Mean Corpuscular Volume (MCV) (fL)', 'MCV', 'Enter MCV (fL)', 'number'),
-                                ('Mean Corpuscular Hemoglobin (MCH) (pg)', 'MCH', 'Enter MCH (pg)', 'number'),
-                                ('Mean Corpuscular Hemoglobin Concentration (MCHC) (g/dL)', 'MCHC', 'Enter MCHC (g/dL)', 'number'),
-                                ('Platelet Count (PLATELET) (10³/µL)', 'PLATELET', 'Enter Platelet count (10³/µL)', 'text')
+                            {% for label, name, placeholder, input_type, ref_range in [
+                                ('White Blood Cell Count (WBC) (10³/µL)', 'WBC', 'Enter WBC (10³/µL)', 'number', '4.0 - 11.0'),
+                                ('Red Blood Cell Count (RBC) (million/µL)', 'RBC', 'Enter RBC (million/µL)', 'number', '4.0 - 5.5'),
+                                ('Hemoglobin (HEMOGLOBIN) (g/dL)', 'HEMOGLOBIN', 'Enter Hemoglobin (g/dL)', 'number', '≥ 12.0'),
+                                ('Hematocrit (HEMATOCRIT) (%)', 'HEMATOCRIT', 'Enter Hematocrit (%)', 'number', '36 - 47'),
+                                ('Mean Corpuscular Volume (MCV) (fL)', 'MCV', 'Enter MCV (fL)', 'number', '80 - 100'),
+                                ('Mean Corpuscular Hemoglobin (MCH) (pg)', 'MCH', 'Enter MCH (pg)', 'number', '27 - 33'),
+                                ('Mean Corpuscular Hemoglobin Concentration (MCHC) (g/dL)', 'MCHC', 'Enter MCHC (g/dL)', 'number', '32 - 36'),
+                                ('Platelet Count (PLATELET) (10³/µL)', 'PLATELET', 'Enter Platelet count (10³/µL)', 'text', '150 - 450')
                             ] %}
                             <div class="mb-3">
                                 <label class="form-label">{{ label }}</label>
+                                <span class="reference-range">Normal Range: {{ ref_range }}</span>
                                 <input class="form-control" id="{{ name }}" name="{{ name }}" placeholder="{{ placeholder }}" required type="{{ input_type }}" step="any" autocomplete="off">
                                 <div class="custom-error" id="{{ name }}-error">{{ label.split(' (')[0] }} is required.</div>
                             </div>
                             {% endfor %}
                         </div>
                         <div class="col-md-6">
-                            {% for label, name, placeholder, input_type, is_required in [
-                                ('Neutrophils (%)', 'NEUTROPHILS', 'Enter Neutrophils (%)', 'number', True),
-                                ('Lymphocytes (%)', 'LYMPHOCYTES', 'Enter Lymphocytes (%)', 'number', True),
-                                ('Monocytes (%)', 'MONOCYTES', 'Enter Monocytes (%)', 'number', True),
-                                ('Eosinophils (%)', 'EUSONIPHILS', 'Enter Eosinophils (%)', 'number', True),
-                                ('Basophils (%)', 'BASOPHIL', 'Enter Basophils (%)', 'number', True),
-                                ('Immature Granulocytes (%)', 'IMMATURE_GRANULYTES', 'Enter Immature Granulocytes (%) (optional)', 'number', False)
+                            {% for label, name, placeholder, input_type, is_required, ref_range in [
+                                ('Neutrophils (%)', 'NEUTROPHILS', 'Enter Neutrophils (%)', 'number', True, '40 - 70'),
+                                ('Lymphocytes (%)', 'LYMPHOCYTES', 'Enter Lymphocytes (%)', 'number', True, '20 - 40'),
+                                ('Monocytes (%)', 'MONOCYTES', 'Enter Monocytes (%)', 'number', True, '2 - 8'),
+                                ('Eosinophils (%)', 'EUSONIPHILS', 'Enter Eosinophils (%)', 'number', True, '1 - 4'),
+                                ('Basophils (%)', 'BASOPHIL', 'Enter Basophils (%)', 'number', True, '0 - 1'),
+                                ('Immature Granulocytes (%)', 'IMMATURE_GRANULYTES', 'Enter Immature Granulocytes (%) (optional)', 'number', False, '0 - 1')
                             ] %}
                             <div class="mb-3">
                                 <label class="form-label">{{ label }}</label>
+                                <span class="reference-range">Normal Range: {{ ref_range }}</span>
                                 <input class="form-control" id="{{ name }}" name="{{ name }}" placeholder="{{ placeholder }}" {% if is_required %}required{% endif %} type="{{ input_type }}" step="any" autocomplete="off">
                                 {% if is_required %}
                                 <div class="custom-error" id="{{ name }}-error">{{ label.split(' (')[0] }} is required.</div>
