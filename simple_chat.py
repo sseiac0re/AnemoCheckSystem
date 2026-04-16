@@ -17,11 +17,11 @@ def init_chat_tables():
     cursor = conn.cursor()
     
     # Create conversations table
-    cursor.execute(f'''
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS chat_conversations (
-            id {db.get_id_type()},
-            user_id {db.get_integer_type()} NOT NULL,
-            admin_id {db.get_integer_type()},
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            admin_id INTEGER,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id),
             FOREIGN KEY (admin_id) REFERENCES users (id)
@@ -29,12 +29,12 @@ def init_chat_tables():
     ''')
     
     # Create messages table
-    cursor.execute(f'''
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS chat_messages (
-            id {db.get_id_type()},
-            conversation_id {db.get_integer_type()} NOT NULL,
-            sender_id {db.get_integer_type()} NOT NULL,
-            message_text {db.get_text_type()} NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversation_id INTEGER NOT NULL,
+            sender_id INTEGER NOT NULL,
+            message_text TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (conversation_id) REFERENCES chat_conversations (id),
             FOREIGN KEY (sender_id) REFERENCES users (id)
