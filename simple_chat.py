@@ -5,11 +5,30 @@ Simple Chat System Models
 import sqlite3
 import os
 from datetime import datetime
-import database as db
 
 def get_db_connection():
-    """Use the same DB connection backend as the main app module."""
-    return db.get_db_connection()
+    """Get database connection using the same path resolution as main app."""
+    # Use the same database path resolution logic as database.py
+    default_local_db = 'anemia_classification.db'
+    env_db_path = os.environ.get('DATABASE_PATH')
+    volume_mount = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+    running_on_railway = any(k in os.environ for k in [
+        'RAILWAY_PROJECT_ID', 'RAILWAY_ENVIRONMENT', 'RAILWAY_STATIC_URL', 'RAILWAY_GIT_COMMIT_SHA'
+    ])
+
+    if env_db_path:
+        db_path = env_db_path
+    elif volume_mount:
+        db_path = os.path.join(volume_mount, 'anemocheck', default_local_db)
+    elif running_on_railway:
+        # Common default mount path for Railway volumes
+        db_path = os.path.join('/data', 'anemocheck', default_local_db)
+    else:
+        db_path = default_local_db
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def init_chat_tables():
     """Initialize chat tables."""
@@ -60,12 +79,7 @@ def create_conversation(user_id, admin_id=None):
             VALUES (?, ?, ?)
         ''', (user_id, admin_id, ph_timestamp))
         
-        if db.USE_POSTGRES:
-            cursor.execute('SELECT id FROM chat_conversations WHERE user_id = ? ORDER BY id DESC LIMIT 1', (user_id,))
-            row = cursor.fetchone()
-            conversation_id = row['id'] if row else None
-        else:
-            conversation_id = cursor.lastrowid
+        conversation_id = cursor.lastrowid
         conn.commit()
         return True, conversation_id
     except Exception as e:
@@ -88,12 +102,7 @@ def send_message(conversation_id, sender_id, message_text):
             VALUES (?, ?, ?, ?)
         ''', (conversation_id, sender_id, message_text, ph_timestamp))
         
-        if db.USE_POSTGRES:
-            cursor.execute('SELECT id FROM chat_messages WHERE conversation_id = ? ORDER BY id DESC LIMIT 1', (conversation_id,))
-            row = cursor.fetchone()
-            message_id = row['id'] if row else None
-        else:
-            message_id = cursor.lastrowid
+        message_id = cursor.lastrowid
         conn.commit()
         return True, message_id
     except Exception as e:
