@@ -8,6 +8,7 @@ Supports both PostgreSQL (Railway) and SQLite (local development).
 import os
 import shutil
 import datetime
+import sqlite3
 from zoneinfo import ZoneInfo
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -20,8 +21,6 @@ if USE_POSTGRES:
     print("Using PostgreSQL database (Railway)")
     DB_PATH = None  # Not used for PostgreSQL
 else:
-    import sqlite3
-
     # Resolve SQLite path with strong preference for a mounted volume in Railway
     # Priority order:
     # 1) DATABASE_PATH (explicit)
@@ -70,12 +69,62 @@ def convert_to_philippines_time(timestamp_str):
     from timezone_utils import format_philippines_time_ampm
     return format_philippines_time_ampm(timestamp_str)
 
+def _normalize_query_for_postgres(query):
+    """Translate common SQLite SQL snippets to PostgreSQL-compatible syntax."""
+    q = query.replace('?', '%s')
+    q = q.replace("datetime('now', '-7 days')", "NOW() - INTERVAL '7 days'")
+    q = q.replace('datetime("now", "-7 days")', "NOW() - INTERVAL '7 days'")
+    q = q.replace("datetime('now')", "NOW()")
+    q = q.replace('datetime("now")', "NOW()")
+    return q
+
+
+class CompatCursor:
+    """Small adapter so legacy SQLite-style queries work on PostgreSQL."""
+
+    def __init__(self, raw_cursor, use_postgres):
+        self._cursor = raw_cursor
+        self._use_postgres = use_postgres
+        self.lastrowid = None
+
+    def execute(self, query, params=None):
+        sql = _normalize_query_for_postgres(query) if self._use_postgres else query
+        if params is None:
+            result = self._cursor.execute(sql)
+        else:
+            result = self._cursor.execute(sql, params)
+        self.lastrowid = None
+        return result
+
+    def executemany(self, query, param_seq):
+        sql = _normalize_query_for_postgres(query) if self._use_postgres else query
+        self.lastrowid = None
+        return self._cursor.executemany(sql, param_seq)
+
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
+
+
+class CompatConnection:
+    """Connection wrapper that returns compatibility cursors."""
+
+    def __init__(self, raw_conn, use_postgres):
+        self._conn = raw_conn
+        self._use_postgres = use_postgres
+
+    def cursor(self):
+        return CompatCursor(self._conn.cursor(), self._use_postgres)
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
 def get_db_connection():
     """Get database connection (PostgreSQL or SQLite)."""
     if USE_POSTGRES:
         # Try DATABASE_URL first (Railway's preferred method)
         if os.environ.get('DATABASE_URL'):
-            conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
+            conn = psycopg2.connect(os.environ.get('DATABASE_URL'), cursor_factory=RealDictCursor)
         else:
             # Fallback to individual variables
             conn = psycopg2.connect(
@@ -83,15 +132,14 @@ def get_db_connection():
                 port=os.environ.get('PGPORT', 5432),
                 database=os.environ.get('PGDATABASE'),
                 user=os.environ.get('PGUSER'),
-                password=os.environ.get('PGPASSWORD')
+                password=os.environ.get('PGPASSWORD'),
+                cursor_factory=RealDictCursor
             )
-        # Use RealDictCursor to return dictionaries instead of tuples
-        conn.cursor_factory = RealDictCursor
-        return conn
+        return CompatConnection(conn, True)
     else:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
-        return conn
+        return CompatConnection(conn, False)
 
 def get_id_type():
     """Get the correct ID type for the database."""
@@ -111,18 +159,10 @@ def get_integer_type():
 
 def execute_sql(cursor, query, params=None):
     """Execute SQL with proper parameter binding for the database type."""
-    if USE_POSTGRES:
-        # PostgreSQL uses %s placeholders
-        if params:
-            cursor.execute(query.replace('?', '%s'), params)
-        else:
-            cursor.execute(query.replace('?', '%s'))
+    if params:
+        cursor.execute(query, params)
     else:
-        # SQLite uses ? placeholders
-        if params:
-            cursor.execute(query, params)
-        else:
-            cursor.execute(query)
+        cursor.execute(query)
 
 def init_db():
     """Initialize the database with necessary tables."""
@@ -291,9 +331,10 @@ def init_db():
     CREATE TABLE IF NOT EXISTS chat_conversations (
         id {get_id_type()},
         user_id {get_integer_type()} NOT NULL,
-        title {get_text_type()},
+        admin_id {get_integer_type()},
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (admin_id) REFERENCES users(id)
     )
     ''')
     
@@ -302,10 +343,11 @@ def init_db():
     CREATE TABLE IF NOT EXISTS chat_messages (
         id {get_id_type()},
         conversation_id {get_integer_type()} NOT NULL,
-        role {get_text_type()} NOT NULL,
-        content {get_text_type()} NOT NULL,
+        sender_id {get_integer_type()} NOT NULL,
+        message_text {get_text_type()} NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id)
+        FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id),
+        FOREIGN KEY (sender_id) REFERENCES users(id)
     )
     ''')
     
@@ -405,8 +447,12 @@ def create_user(username, password=None, email=None, first_name=None, last_name=
             (username, password_hash, email, first_name, last_name, gender, 
              date_of_birth, normalized_medical_id, is_admin, ph_timestamp)
         )
-        conn.commit()
-        user_id = cursor.lastrowid
+        if USE_POSTGRES:
+            execute_sql(cursor, "SELECT id FROM users WHERE username = ?", (username,))
+            created_user = cursor.fetchone()
+            user_id = created_user['id'] if created_user else None
+        else:
+            user_id = cursor.lastrowid
         
         # Create empty medical_data entry for the user
         execute_sql(cursor,
@@ -635,7 +681,12 @@ def add_classification_record(*args, **kwargs):
         )
 
     conn.commit()
-    record_id = cursor.lastrowid
+    if USE_POSTGRES:
+        execute_sql(cursor, "SELECT id FROM classification_history WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user_id,))
+        row = cursor.fetchone()
+        record_id = row['id'] if row else None
+    else:
+        record_id = cursor.lastrowid
     conn.close()
 
     return record_id
@@ -1258,28 +1309,52 @@ def get_admin_dashboard_charts():
     cursor = conn.cursor()
     
     # Age groups distribution
-    cursor.execute("""
-        SELECT 
-            CASE 
-                WHEN (strftime('%Y', 'now') - strftime('%Y', date_of_birth)) < 18 THEN 'Under 18'
-                WHEN (strftime('%Y', 'now') - strftime('%Y', date_of_birth)) BETWEEN 18 AND 30 THEN '18-30'
-                WHEN (strftime('%Y', 'now') - strftime('%Y', date_of_birth)) BETWEEN 31 AND 45 THEN '31-45'
-                WHEN (strftime('%Y', 'now') - strftime('%Y', date_of_birth)) BETWEEN 46 AND 60 THEN '46-60'
-                ELSE 'Over 60'
-            END as age_group,
-            COUNT(*) as count
-        FROM users 
-        WHERE date_of_birth IS NOT NULL AND is_admin = 0
-        GROUP BY age_group
-        ORDER BY 
-            CASE age_group
-                WHEN 'Under 18' THEN 1
-                WHEN '18-30' THEN 2
-                WHEN '31-45' THEN 3
-                WHEN '46-60' THEN 4
-                WHEN 'Over 60' THEN 5
-            END
-    """)
+    if USE_POSTGRES:
+        cursor.execute("""
+            SELECT 
+                CASE 
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth::date)) < 18 THEN 'Under 18'
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth::date)) BETWEEN 18 AND 30 THEN '18-30'
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth::date)) BETWEEN 31 AND 45 THEN '31-45'
+                    WHEN EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth::date)) BETWEEN 46 AND 60 THEN '46-60'
+                    ELSE 'Over 60'
+                END as age_group,
+                COUNT(*) as count
+            FROM users 
+            WHERE date_of_birth IS NOT NULL AND is_admin = 0
+            GROUP BY age_group
+            ORDER BY 
+                CASE age_group
+                    WHEN 'Under 18' THEN 1
+                    WHEN '18-30' THEN 2
+                    WHEN '31-45' THEN 3
+                    WHEN '46-60' THEN 4
+                    WHEN 'Over 60' THEN 5
+                END
+        """)
+    else:
+        cursor.execute("""
+            SELECT 
+                CASE 
+                    WHEN (strftime('%Y', 'now') - strftime('%Y', date_of_birth)) < 18 THEN 'Under 18'
+                    WHEN (strftime('%Y', 'now') - strftime('%Y', date_of_birth)) BETWEEN 18 AND 30 THEN '18-30'
+                    WHEN (strftime('%Y', 'now') - strftime('%Y', date_of_birth)) BETWEEN 31 AND 45 THEN '31-45'
+                    WHEN (strftime('%Y', 'now') - strftime('%Y', date_of_birth)) BETWEEN 46 AND 60 THEN '46-60'
+                    ELSE 'Over 60'
+                END as age_group,
+                COUNT(*) as count
+            FROM users 
+            WHERE date_of_birth IS NOT NULL AND is_admin = 0
+            GROUP BY age_group
+            ORDER BY 
+                CASE age_group
+                    WHEN 'Under 18' THEN 1
+                    WHEN '18-30' THEN 2
+                    WHEN '31-45' THEN 3
+                    WHEN '46-60' THEN 4
+                    WHEN 'Over 60' THEN 5
+                END
+        """)
     age_groups = {row['age_group']: row['count'] for row in cursor.fetchall()}
     
     # Gender distribution
@@ -1339,7 +1414,12 @@ def create_imported_file(filename, original_filename, total_records, imported_by
         VALUES (?, ?, ?, ?, ?)
     ''', (filename, original_filename, total_records, imported_by, ph_timestamp))
     
-    file_id = cursor.lastrowid
+    if USE_POSTGRES:
+        execute_sql(cursor, "SELECT id FROM imported_files WHERE filename = ? ORDER BY id DESC LIMIT 1", (filename,))
+        row = cursor.fetchone()
+        file_id = row['id'] if row else None
+    else:
+        file_id = cursor.lastrowid
     conn.commit()
     conn.close()
     
@@ -1352,10 +1432,16 @@ def get_imported_files():
     cursor = conn.cursor()
     
     # Check if imported_files table exists
-    cursor.execute("""
-        SELECT name FROM sqlite_master 
-        WHERE type='table' AND name='imported_files'
-    """)
+    if USE_POSTGRES:
+        cursor.execute("""
+            SELECT table_name FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'imported_files'
+        """)
+    else:
+        cursor.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name='imported_files'
+        """)
     
     if not cursor.fetchone():
         print("imported_files table does not exist")
@@ -1429,9 +1515,19 @@ def get_applied_imported_data():
     cursor = conn.cursor()
     
     # Check if file_id column exists
-    cursor.execute("PRAGMA table_info(classification_import_data)")
-    columns = [column[1] for column in cursor.fetchall()]
-    has_file_id = 'file_id' in columns
+    if USE_POSTGRES:
+        cursor.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'classification_import_data'
+              AND column_name = 'file_id'
+        """)
+        has_file_id = cursor.fetchone() is not None
+    else:
+        cursor.execute("PRAGMA table_info(classification_import_data)")
+        columns = [column[1] for column in cursor.fetchall()]
+        has_file_id = 'file_id' in columns
     
     if has_file_id:
         # Age groups from applied imported data
